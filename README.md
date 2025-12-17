@@ -1,14 +1,41 @@
-# DineEase - Restaurant Management Dashboard
+# 🍽️ RMS – DineEase (Restaurant Management System)
 
-A comprehensive dashboard for restaurant management, built with modern web technologies. This application allows restaurant staff to manage tables, orders, menus, and view performance metrics.
+DineEase is a **full-stack Restaurant Management System** built using **Django (Backend)** and **React (Frontend)**.
+The project focuses on clean architecture, secure authentication, and real-world development practices.
 
-## Technologies Used
+---
 
-This project is built with:
+## 📌 Tech Stack
 
-*   **Vite**: A next-generation frontend tooling that provides a faster and leaner development experience.
-*   **React**: A JavaScript library for building user interfaces.
-*   **TypeScript**: A typed superset of JavaScript that compiles to plain JavaScript.
-*   **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
-*   **shadcn-ui**: A collection of re-usable components built using Radix UI and Tailwind CSS.
-*   **Recharts**: A composable charting library built on React components.
+### Backend
+- Python
+- Django
+- Django REST Framework (DRF)
+- JWT Authentication (SimpleJWT)
+- Custom User Model (Email-based login)
+- Jazzmin (Admin UI Customization)
+
+### Frontend
+- React.js
+- JavaScript (ES6+)
+- HTML5 / CSS3
+
+---
+
+
+## ✅ Implemented Features
+
+- Custom User Model with email-based login
+- JWT authentication (access & refresh tokens)
+- Secure authentication and authorization flow
+- Django Admin customization using Jazzmin
+- RESTful APIs using Django REST Framework
+- Scalable backend structure suitable for production
+
+---
+
+## 👨‍💻 Author
+
+**Ankur Nanaware**  
+Associate IT Consultant
+
