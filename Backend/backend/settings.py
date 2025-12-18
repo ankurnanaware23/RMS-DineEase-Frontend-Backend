@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'api',
     'userauth',
     'core',
+    'menu',
+    'tables',
+    'orders',
+    'payments',
+    'staff',
 
     # Third Party Apps
     'rest_framework',
