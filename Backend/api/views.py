@@ -15,7 +15,12 @@ from .serializers import (
 )
 # -------------------------------------------------------------------
 from api import serializers as api_serializers
-from rest_framework_simplejwt.views import TokenObtainPairView  
+from userauth.models import User, Profile
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = api_serializers.MyTokenObtainPairSerializer
@@ -23,6 +28,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
     def get(self, request, *args, **kwargs):
         serializer = self.serializer_class()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny] # AllowAny means all authenticated or unauthenticated users can access this view
+    serializer_class = api_serializers.RegisterSerializer
+
 
 
 # -------------------------------------------------------------------

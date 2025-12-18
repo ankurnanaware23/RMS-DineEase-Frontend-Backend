@@ -4,6 +4,7 @@ from .models import User, Category, Dish, Table, Order, OrderItem, Earning
 # -------------------------------------------------------------------
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer  
 from userauth.models import User, Profile
+from django.contrib.auth.password_validation import validate_password
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,6 +34,41 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         
         return token
     
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        validators=[validate_password]
+    )
+    password2 = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'password', 'password2']
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError(
+                {"password": "Passwords do not match"}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password2')
+        password = validated_data.pop('password')
+
+        user = User.objects.create(
+            email=validated_data['email'],
+            username=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+        )
+
+        user.set_password(password)
+        user.save()
+        return user
+
+
+
 
 # -------------------------------------------------------------------
 
