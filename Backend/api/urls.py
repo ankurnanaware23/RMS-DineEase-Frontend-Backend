@@ -33,5 +33,7 @@ urlpatterns = [
     # -------------------------------------------------------------------
     path('user/token/', api_views.MyTokenObtainPairView.as_view(), name='Token Obtain Pair View'),
     path('user/token/refresh/',TokenRefreshView.as_view(), name="Token Refresh View"),
-    path('user/register/', api_views.RegisterView.as_view(), name="User Registration View")
+    path('user/register/', api_views.RegisterView.as_view(), name="User Registration View"),
+    path('user/password-reset/<email>/', api_views.PasswordResetEmailVerifyAPIView.as_view(), name="User Registration View"),
+    path('user/password-change/', api_views.PasswordChangeAPIView.as_view(), name="User Registration View")
 ]

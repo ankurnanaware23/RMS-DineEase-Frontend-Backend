@@ -10,6 +10,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User # this line tells which model to use
         fields = ("id", "email", "first_name", "last_name") # fields to be included in the serialization
+        # fields = "__all__"  # to include all fields
+
 
         # this makes first_name and last_name required fields
         extra_kwargs = {

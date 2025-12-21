@@ -1,6 +1,4 @@
-from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from django.db.models import Sum, Count
 from django.utils import timezone
 from .models import User, Category, Dish, Table, Order, OrderItem, Earning
@@ -17,10 +15,12 @@ from .serializers import (
 from api import serializers as api_serializers
 from userauth.models import User, Profile
 
+from rest_framework import viewsets, status
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.response import Response
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = api_serializers.MyTokenObtainPairSerializer
@@ -29,13 +29,61 @@ class MyTokenObtainPairView(TokenObtainPairView):
         serializer = self.serializer_class()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+# this view handles user registration
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny] # AllowAny means all authenticated or unauthenticated users can access this view
     serializer_class = api_serializers.RegisterSerializer
 
+# function to generate a random OTP
+def generate_otp(length):
+    import random
 
+    otp = "".join([str(random.randint(0, 9)) for _ in range(length)])
+    return otp
 
+# this view handles sending OTP to email for password reset
+class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = api_serializers.UserSerializer
+
+    def get_object(self):
+        email = self.kwargs['email'] # get email from URL | e.g., /api/password-reset-verify/<email>/
+
+        user = User.objects.filter(email=email).first()
+
+        if user:
+            uuidb64 = user.pk  # Using user's primary key as a simple unique identifier
+            refresh = RefreshToken.for_user(user)
+            refresh_token = str(refresh.access_token)
+            user.refresh_token = refresh_token
+
+            user.otp = generate_otp(6)  # In real implementation, generate a random OTP
+            user.save()
+            link = f"http://localhost:5173/reset-password/?otp{user.otp}&uuidb64={uuidb64}&=refresh_token{refresh_token}/"  # Construct the password reset link
+            print("Password Reset Link:", link)  # For testing purposes, print the link to console
+
+        return user
+
+# this view handles changing password reset using OTP
+class PasswordChangeAPIView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = api_serializers.UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        otp = request.data('otp')
+        uuidb64 = request.data('uuidb64')
+        password = request.data('password')  
+
+        user = User.objects.filter(id=uuidb64, otp=otp).first() 
+        if user:
+            user.set_password(password)
+            user.otp = ""  # Clear the OTP after successful password reset
+            user.save()
+            return Response({"detail": "Password reset successful."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail": "Invalid OTP or user."}, status=status.HTTP_400_BAD_REQUEST)
+        
 # -------------------------------------------------------------------
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
