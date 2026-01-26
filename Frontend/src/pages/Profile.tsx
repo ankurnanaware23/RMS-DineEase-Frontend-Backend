@@ -11,7 +11,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -99,10 +101,36 @@ export function ProfileForm() {
 }
 
 export default function Profile() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    toast("Are you sure you want to log out?", {
+      action: {
+        label: "Logout",
+        onClick: () => {
+          toast("You have been logged out.");
+          navigate("/signin");
+        },
+      },
+      cancel: {
+        label: "Cancel",
+      },
+    });
+  };
+
   return (
-    <div className="p-4 space-y-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Profile Settings</h1>
-      <ProfileForm />
+    <div className="p-4 space-y-6 max-w-2xl mx-auto">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Profile Settings</CardTitle>
+          <Button variant="destructive" onClick={handleLogout}>
+            Logout
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <ProfileForm />
+        </CardContent>
+      </Card>
     </div>
   );
 }

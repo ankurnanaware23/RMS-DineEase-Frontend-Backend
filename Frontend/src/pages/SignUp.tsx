@@ -1,140 +1,184 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 
 export default function SignUp() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Simulate registration - replace with actual backend call later
+    setTimeout(() => {
+      setIsLoading(false);
+      toast({
+        title: "Account created!",
+        description: "Welcome to DineEase. Please sign in to continue.",
+      });
+      navigate("/signin");
+    }, 1500);
+  };
 
   return (
-    <div className="relative flex items-center justify-center h-screen">
-        <Link to="/" className="absolute top-8 left-8 flex items-center space-x-2 group">
-            <span className="p-2 bg-primary text-primary-foreground rounded-full group-hover:bg-primary/90">
-                <ArrowLeft className="w-6 h-6" />
-            </span>
-            <span className="text-primary font-medium group-hover:text-primary/90">Back to dashboard</span>
-        </Link>
-      <div className="w-full max-w-md p-6 space-y-4 bg-card rounded-2xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.3)] border border-border">
-        <div className="flex justify-center">
-          {/* Placeholder for logo */}
-          <svg
-            className="w-12 h-12 text-primary"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 11c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3zm0 0c-3.314 0-6 2.686-6 6v1h12v-1c0-3.314-2.686-6-6-6z"
-            />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-center text-card-foreground">
-          Create an account
-        </h2>
-        <p className="text-center text-muted-foreground">
-          Join us! Please fill in the details to create your account.
-        </p>
-        <form className="space-y-4">
-          <div className="relative">
-            <label
-              htmlFor="firstName"
-              className="text-sm font-medium text-card-foreground"
-            >
-              First Name
-            </label>
-            <div className="relative mt-2">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <User className="w-5 h-5 text-gray-400" />
-              </span>
-              <input
-                id="firstName"
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full pl-10 px-4 py-2 bg-input border border-border rounded-lg focus:ring-ring focus:border-ring"
-              />
-            </div>
-          </div>
-          <div className="relative">
-            <label
-              htmlFor="lastName"
-              className="text-sm font-medium text-card-foreground"
-            >
-              Last Name
-            </label>
-            <div className="relative mt-2">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <User className="w-5 h-5 text-gray-400" />
-              </span>
-              <input
-                id="lastName"
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full pl-10 px-4 py-2 bg-input border border-border rounded-lg focus:ring-ring focus:border-ring"
-              />
-            </div>
-          </div>
-          <div className="relative">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-card-foreground"
-            >
-              Email
-            </label>
-            <div className="relative mt-2">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Mail className="w-5 h-5 text-gray-400" />
-              </span>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 px-4 py-2 bg-input border border-border rounded-lg focus:ring-ring focus:border-ring"
-              />
-            </div>
-          </div>
-          <div className="relative">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-card-foreground"
-            >
-              Password
-            </label>
-            <div className="relative mt-2">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Lock className="w-5 h-5 text-gray-400" />
-              </span>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 px-4 py-2 bg-input border border-border rounded-lg focus:ring-ring focus:border-ring"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full py-2 font-semibold text-primary-foreground bg-primary rounded-lg hover:bg-primary/90"
-          >
-            Sign Up
-          </button>
-        </form>
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link to="/signin" className="text-primary hover:underline">
-            Sign in
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-lg relative z-10">
+        {/* Logo */}
+        <div className="flex flex-col items-center justify-center mb-4">
+          <Link to="/" className="flex items-center gap-3">
+            <span className="text-6xl">🛎️</span>
+            <span className="text-4xl font-bold text-foreground">DineEase</span>
           </Link>
-        </p>
+          <p className="text-muted-foreground mt-2 tracking-wider">Restaurant Management System</p>
+        </div>
+
+        <Card className="bg-card/80 backdrop-blur-sm rounded-2xl border border-white/30 shadow-2xl">
+          <CardHeader className="space-y-1 text-center flex flex-col items-center">
+            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+            <CardDescription>
+              Start managing your restaurant with DineEase
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Enter your first name"
+                      className="pl-10"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Enter your last name"
+                      className="pl-10"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="pl-10"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create password"
+                    className="pl-10 pr-10"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Password Requirements */}
+              <div className="text-xs text-muted-foreground">
+                Password must be at least 8 characters long
+              </div>
+
+              {/* Submit Button */}
+              <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading}>
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    Creating account...
+                  </div>
+                ) : (
+                  "Create account"
+                )}
+              </Button>
+            </form>
+
+            {/* Sign In Link */}
+            <div className="mt-4 text-center text-sm">
+              <span className="text-muted-foreground">Already have an account? </span>
+              <Link to="/signin" className="text-primary font-medium hover:underline">
+                Sign in
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
