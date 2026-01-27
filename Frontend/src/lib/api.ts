@@ -1,5 +1,36 @@
 import { Table, Order, MenuItem, Category, Customer } from '@/types';
 
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
+export const signIn = async (credentials: any) => {
+  const response = await fetch(`${API_BASE_URL}/user/token/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(credentials),
+  });
+  if (!response.ok) {
+    throw new Error('Sign in failed');
+  }
+  return response.json();
+};
+
+export const signUp = async (userData: any) => {
+  const response = await fetch(`${API_BASE_URL}/user/register/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    throw new Error('Sign up failed');
+  }
+  return response.json();
+};
+
+
 // This is mock data. Once the Django backend is ready, these will be replaced with actual API calls.
 
 let initialTables: Table[] = [

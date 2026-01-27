@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { signIn } from "@/lib/api";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -31,15 +32,25 @@ export default function SignIn() {
 
     setIsLoading(true);
     
-    // Simulate login - replace with actual backend call later
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const data = await signIn(formData);
+      localStorage.setItem('accessToken', data.access);
+      localStorage.setItem('refreshToken', data.refresh);
+
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
       navigate("/dashboard");
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Invalid email or password.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

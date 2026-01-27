@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { signUp } from "@/lib/api";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -42,15 +43,27 @@ export default function SignUp() {
 
     setIsLoading(true);
     
-    // Simulate registration - replace with actual backend call later
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await signUp({ 
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        password: formData.password
+      });
       toast({
         title: "Account created!",
         description: "Welcome to DineEase. Please sign in to continue.",
       });
       navigate("/signin");
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
