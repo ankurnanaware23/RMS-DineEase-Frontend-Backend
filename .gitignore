@@ -7,6 +7,7 @@
 *.sqlite3
 .DS_Store
 Thumbs.db
+.idx/
 
 #################################
 # Python / Django
