@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { logout } from "@/hooks/useAuth";
+
 
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -42,15 +44,39 @@ export function ProfileForm() {
     mode: "onChange",
   });
 
-  function onSubmit(data: ProfileFormValues) {
-    toast("You submitted the following values:", {
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
+  // function onSubmit(data: ProfileFormValues) {
+  //   toast("You submitted the following values:", {
+  //     description: (
+  //       <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+  //         <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+  //       </pre>
+  //     ),
+  //   });
+  // }
+  
+  async function onSubmit(data: ProfileFormValues) {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+
+      const response = await fetch("/api/user/profile/", {
+        method: "PUT", // or PATCH (based on your Django API)
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      toast("Profile updated successfully ✅");
+    } catch (error) {
+      toast("Failed to update profile ❌");
+    }
   }
+
 
   return (
     <Form {...form}>
@@ -108,8 +134,9 @@ export default function Profile() {
       action: {
         label: "Logout",
         onClick: () => {
+          logout();               // 🔥 clear tokens
           toast("You have been logged out.");
-          navigate("/signin");
+          navigate("/signin");    // 🔁 redirect
         },
       },
       cancel: {
@@ -117,6 +144,7 @@ export default function Profile() {
       },
     });
   };
+
 
   return (
     <div className="p-4 space-y-6 max-w-2xl mx-auto">

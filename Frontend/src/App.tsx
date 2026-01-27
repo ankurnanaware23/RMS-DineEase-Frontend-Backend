@@ -16,10 +16,12 @@ import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 import { Toaster } from "sonner";
 
+
 export default function App() {
   return (
     <Router>
-     <Toaster />
+     {/* <Toaster /> */}
+     <Toaster richColors position="bottom-right" />
       <Routes>
         {/* Public routes */}
         <Route element={<PublicRoute />}>
