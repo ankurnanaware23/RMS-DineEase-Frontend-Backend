@@ -1,5 +1,13 @@
 import { Table, Order, MenuItem, Category, Customer } from "@/types";
 
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "http://127.0.0.1:8000",
+});
+
+export default api;
+
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 export const signIn = async (credentials: any) => {
@@ -30,7 +38,7 @@ export const signUp = async (userData: any) => {
   return response.json();
 };
 
-export const updateProfile = (data) => {
+export const updateProfile = (data: any) => {
   const token = localStorage.getItem("accessToken");
 
   return fetch("/api/user/profile/", {
