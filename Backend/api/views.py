@@ -21,6 +21,10 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = api_serializers.MyTokenObtainPairSerializer
@@ -43,6 +47,10 @@ def generate_otp(length):
     return otp
 
 # this view handles sending OTP to email for password reset
+# this view handles verifying email during password reset
+# RetrieveAPIView is used to retrive a single model instance
+# ListAPIView is used to retrive multiple model instances
+
 class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     serializer_class = api_serializers.UserSerializer
@@ -52,6 +60,9 @@ class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
 
         user = User.objects.filter(email=email).first()
 
+        if not user:
+            raise NotFound("User with this email does not exist")
+            
         if user:
             uuidb64 = user.pk  # Using user's primary key as a simple unique identifier
             refresh = RefreshToken.for_user(user)
@@ -60,9 +71,27 @@ class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
 
             user.otp = generate_otp(6)  # In real implementation, generate a random OTP
             user.save()
-            link = f"http://localhost:5173/reset-password/?otp{user.otp}&uuidb64={uuidb64}&=refresh_token{refresh_token}/"  # Construct the password reset link
-            print("Password Reset Link:", link)  # For testing purposes, print the link to console
+            link = f"http://localhost:5173/reset-password/?otp={user.otp}&uuidb64={uuidb64}&=refresh_token{refresh_token}/"  # Construct the password reset link
+            
+            context = {
+                'reset_link': link,
+                'user': user,
+            }
 
+            subject = 'DineEase Password Reset Request'
+            text_body = render_to_string('email/password_reset.txt', context)
+            html_body = render_to_string('email/password_reset.html', context)
+
+            msg = EmailMultiAlternatives(
+                subject = subject,
+                from_email = settings.DEFAULT_FROM_EMAIL,
+                to = [user.email],
+                body = text_body
+            )
+
+            msg.attach_alternative(html_body, "text/html")
+            msg.send()
+            
         return user
 
 # this view handles changing password reset using OTP
@@ -80,11 +109,25 @@ class PasswordChangeAPIView(generics.CreateAPIView):
             user.set_password(password)
             user.otp = ""  # Clear the OTP after successful password reset
             user.save()
-            return Response({"detail": "Password reset successful."}, status=status.HTTP_200_OK)
+            return Response({"detail": "Password reset successful."}, status=status.HTTP_201_CREATED)
         else:
             return Response({"detail": "Invalid OTP or user."}, status=status.HTTP_400_BAD_REQUEST)
-        
-# -------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ======================================================================================================
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer

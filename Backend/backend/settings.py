@@ -3,6 +3,9 @@ from pathlib import Path
 import os 
 from datetime import timedelta
 
+from environs import Env
+env = Env()
+env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -47,6 +50,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'anymail',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -140,6 +145,27 @@ AUTH_USER_MODEL = 'userauth.User'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+
+# setting environment variables 
+# MAILGUN_API_KEY = env.str("MAILGUN_API_KEY")
+# MAILGUN_API_TOKEN = env.str("MAILGUN_API_TOKEN")
+# MAILGUN_SENDER_DOMAI = env.str("MAILGUN_SENDER_DOMAI")
+
+# Email Configuration
+EMAIL_BACKEND       = env("EMAIL_BACKEND")
+EMAIL_HOST          = env("EMAIL_HOST")
+EMAIL_PORT          = env.int("EMAIL_PORT")
+EMAIL_USE_TLS       = env.bool("EMAIL_USE_TLS")
+EMAIL_HOST_USER     = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL  = env("DEFAULT_FROM_EMAIL")
+
+
+ANYMAIL = {
+    "EMAIL_HOST_USER": env("EMAIL_HOST_USER"),
+    "EMAIL_HOST_PASSWORD": env("EMAIL_HOST_PASSWORD")
+}
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
