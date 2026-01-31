@@ -25,6 +25,7 @@ from rest_framework.exceptions import NotFound
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+import pytz
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = api_serializers.MyTokenObtainPairSerializer
@@ -47,34 +48,23 @@ def generate_otp(length):
     return otp
 
 # this view handles sending OTP to email for password reset
-# this view handles verifying email during password reset
-# RetrieveAPIView is used to retrive a single model instance
-# ListAPIView is used to retrive multiple model instances
-
-class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
+class PasswordResetEmailVerifyAPIView(generics.GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = api_serializers.UserSerializer
 
-    def get_object(self):
-        email = self.kwargs['email'] # get email from URL | e.g., /api/password-reset-verify/<email>/
-
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
         user = User.objects.filter(email=email).first()
 
         if not user:
             raise NotFound("User with this email does not exist")
             
         if user:
-            uuidb64 = user.pk  # Using user's primary key as a simple unique identifier
-            refresh = RefreshToken.for_user(user)
-            refresh_token = str(refresh.access_token)
-            user.refresh_token = refresh_token
-
-            user.otp = generate_otp(6)  # In real implementation, generate a random OTP
+            user.otp = generate_otp(6)
             user.save()
-            link = f"http://localhost:5173/reset-password/?otp={user.otp}&uuidb64={uuidb64}&=refresh_token{refresh_token}/"  # Construct the password reset link
             
             context = {
-                'reset_link': link,
+                'otp': user.otp,
                 'user': user,
             }
 
@@ -92,7 +82,22 @@ class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
             msg.attach_alternative(html_body, "text/html")
             msg.send()
             
-        return user
+        return Response({"detail": "Password reset OTP has been sent to your email."}, status=status.HTTP_200_OK)
+
+class OTPVerificationAPIView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = api_serializers.UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+
+        user = User.objects.filter(email=email, otp=otp).first()
+
+        if user:
+            return Response({"detail": "OTP verification successful."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail": "Invalid OTP or email."}, status=status.HTTP_400_BAD_REQUEST)
 
 # this view handles changing password reset using OTP
 class PasswordChangeAPIView(generics.CreateAPIView):
@@ -100,31 +105,42 @@ class PasswordChangeAPIView(generics.CreateAPIView):
     serializer_class = api_serializers.UserSerializer
 
     def create(self, request, *args, **kwargs):
-        otp = request.data('otp')
-        uuidb64 = request.data('uuidb64')
-        password = request.data('password')  
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+        password = request.data.get('password')
 
-        user = User.objects.filter(id=uuidb64, otp=otp).first() 
+        user = User.objects.filter(email=email, otp=otp).first() 
         if user:
             user.set_password(password)
             user.otp = ""  # Clear the OTP after successful password reset
             user.save()
+
+            # Send password change confirmation email
+            now_utc = timezone.now()
+            ist = pytz.timezone('Asia/Kolkata')
+            now_ist = now_utc.astimezone(ist)
+            context = {
+                'user': user,
+                'timestamp': now_ist.strftime('%B %d, %Y at %I:%M %p %Z')
+            }
+
+            subject = 'Your DineEase Password Has Been Changed'
+            text_body = render_to_string('email/password_changed.txt', context)
+            html_body = render_to_string('email/password_changed.html', context)
+
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+                body=text_body
+            )
+
+            msg.attach_alternative(html_body, "text/html")
+            msg.send()
+
             return Response({"detail": "Password reset successful."}, status=status.HTTP_201_CREATED)
         else:
             return Response({"detail": "Invalid OTP or user."}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # ======================================================================================================
@@ -226,7 +242,7 @@ class EarningViewSet(viewsets.ReadOnlyModelViewSet):
         # Today's Performance
         today_earning = revenue
         in_progress_orders = Order.objects.filter(status='In Progress').count()
-        total_dishes_ordered = OrderItem.objects.filter(order__created_at__date=today).aggregate(total=Sum('quantity'))['total'] or 0
+        total_dishes_ordered = OrderItem.products.filter(order__created_at__date=today).aggregate(total=Sum('quantity'))['total'] or 0
         active_orders = Order.objects.filter(status__in=['Pending', 'In Progress']).count()
 
         # Recent Orders
