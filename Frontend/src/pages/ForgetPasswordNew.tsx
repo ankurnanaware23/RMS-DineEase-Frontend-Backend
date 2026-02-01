@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,7 +20,6 @@ import {
   EyeNoneIcon,
 } from "@radix-ui/react-icons";
 import api from "@/lib/api";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const ForgotPasswordNew = () => {
   const [step, setStep] = useState(1);
@@ -32,13 +31,21 @@ const ForgotPasswordNew = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+      handleEmailSubmit(null, location.state.email);
+    }
+  }, [location.state?.email]);
+
+  const handleEmailSubmit = async (e: React.FormEvent | null, userEmail = email) => {
+    if (e) e.preventDefault();
     setLoading(true);
 
     try {
-      await api.post("/api/user/password-reset/", { email });
+      await api.post("/api/user/password-reset/", { email: userEmail });
       toast.success("Password reset code sent to your email");
       setStep(2);
     } catch (error: any) {
@@ -137,6 +144,7 @@ const ForgotPasswordNew = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  readOnly={!!location.state?.email}
                 />
               </div>
             </CardContent>

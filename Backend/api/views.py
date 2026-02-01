@@ -10,6 +10,7 @@ from .serializers import (
     OrderSerializer, 
     OrderItemSerializer, 
     EarningSerializer,
+    UserProfileSerializer,
 )
 # -------------------------------------------------------------------
 from api import serializers as api_serializers
@@ -18,7 +19,7 @@ from userauth.models import User, Profile
 from rest_framework import viewsets, status
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
@@ -142,26 +143,23 @@ class PasswordChangeAPIView(generics.CreateAPIView):
         else:
             return Response({"detail": "Invalid OTP or user."}, status=status.HTTP_400_BAD_REQUEST)
 
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def get_serializer_context(self):
+        """
+        Extra context provided to the serializer class.
+        """
+        return {'request': self.request}
 
 # ======================================================================================================
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
-    @action(detail=False, methods=['get'], url_path='profile')
-    def profile(self, request):
-        # Assuming the user is authenticated
-        user = request.user
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
-
-    @profile.mapping.put
-    def update_profile(self, request):
-        user = request.user
-        serializer = self.get_serializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()

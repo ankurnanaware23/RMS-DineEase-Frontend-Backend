@@ -44,6 +44,7 @@ export default function App() {
             <Route path="all-orders" element={<AllOrders />} />
             <Route path="overall-performance" element={<OverallPerformance />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="/forget-password-new" element={<ForgotPasswordNew />} />
           </Route>
         </Route>
         

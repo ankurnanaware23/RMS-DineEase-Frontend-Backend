@@ -10,6 +10,7 @@ import { AddTableForm } from '@/components/forms/AddTableForm';
 import { AddOrderForm } from '@/components/forms/AddOrderForm';
 import { AddCategoryForm } from '@/components/forms/AddCategoryForm';
 import { AddDishForm } from '@/components/forms/AddDishForm';
+import api from '@/lib/api';
 
 export default function Dashboard() {
   const {
@@ -28,6 +29,26 @@ export default function Dashboard() {
   
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
+  const [userName, setUserName] = useState('Guest');
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        const response = await api.get('/api/user/profile/', {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        const { first_name, last_name } = response.data;
+        setUserName(`${first_name} ${last_name}`.trim() || 'Guest');
+      } catch (error) {
+        console.error("Failed to fetch user data", error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Update time every second
   useEffect(() => {
@@ -137,7 +158,7 @@ export default function Dashboard() {
       {/* Welcome Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Good Morning, Ankur Nanaware</h1>
+          <h1 className="text-2xl font-bold text-foreground">Good Morning, {userName}</h1>
           <p className="text-muted-foreground">Give your best services for customers 😊</p>
         </div>
         <div className="text-right">

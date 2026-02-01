@@ -8,28 +8,52 @@ from django.contrib.auth.password_validation import validate_password
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User # this line tells which model to use
-        fields = ("id", "email", "first_name", "last_name") # fields to be included in the serialization
-        # fields = "__all__"  # to include all fields
+        model = User
+        fields = ("id", "email", "first_name", "last_name")
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    phone = serializers.SerializerMethodField()
 
-        # this makes first_name and last_name required fields
-        extra_kwargs = {
-            "first_name": {"required": True, "allow_blank": False},
-            "last_name": {"required": True, "allow_blank": False},
-        }
-
-class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Profile
-        fileds = "__all__"
+        model = User
+        fields = ('first_name', 'last_name', 'email', 'phone')
+
+    def get_phone(self, obj):
+        """
+        Safely get the phone number from the user's profile, creating a profile if it doesn't exist.
+        """
+        profile, created = Profile.objects.get_or_create(user=obj)
+        return profile.phone if profile.phone else ""
+
+    def update(self, instance, validated_data):
+        """
+        Update user instance and their profile.
+        The 'phone' number is extracted directly from the request context
+        as SerializerMethodField is read-only.
+        """
+        # Ensure profile exists
+        profile, created = Profile.objects.get_or_create(user=instance)
+        
+        # Get phone from request data, since 'phone' is read-only in the serializer
+        phone = self.context['request'].data.get('phone')
+
+        # Update User model fields
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.save()
+
+        # Update Profile model field if phone is provided
+        if phone is not None:
+            profile.phone = phone
+            profile.save()
+
+        return instance
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
 
-        # Add custom claims
         token['email'] = user.email
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
@@ -69,15 +93,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
-
-
 # -------------------------------------------------------------------
-
-# class UserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = ('id', 'username', 'email', 'phone_number')
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -126,5 +142,3 @@ class EarningSerializer(serializers.ModelSerializer):
     class Meta:
         model = Earning
         fields = '__all__'
-
-

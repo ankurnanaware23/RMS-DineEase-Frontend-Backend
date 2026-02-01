@@ -8,7 +8,8 @@ from .views import (
     OrderViewSet, 
     OrderItemViewSet, 
     EarningViewSet,
-    OTPVerificationAPIView
+    OTPVerificationAPIView,
+    UserProfileView
 )
 
 # -------------------------------------------------------------------
@@ -37,5 +38,6 @@ urlpatterns = [
     path('user/register/', api_views.RegisterView.as_view(), name="User Registration View"),
     path('user/password-reset/', api_views.PasswordResetEmailVerifyAPIView.as_view(), name="Password Reset View"),
     path('user/otp-verification/', OTPVerificationAPIView.as_view(), name="OTP Verification View"),
-    path('user/password-change/', api_views.PasswordChangeAPIView.as_view(), name="User Registration View")
+    path('user/password-change/', api_views.PasswordChangeAPIView.as_view(), name="User Registration View"),
+    path('user/profile/', UserProfileView.as_view(), name='user-profile'),
 ]

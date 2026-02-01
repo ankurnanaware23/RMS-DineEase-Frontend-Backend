@@ -15,11 +15,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { logout } from "@/hooks/useAuth";
-
+import { useEffect, useState } from "react";
 
 const profileFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+  first_name: z.string().min(2, {
+    message: "First name must be at least 2 characters.",
+  }),
+  last_name: z.string().min(2, {
+    message: "Last name must be at least 2 characters.",
   }),
   email: z.string().email({
     message: "Please enter a valid email.",
@@ -31,35 +34,55 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-const defaultValues: Partial<ProfileFormValues> = {
-  name: "Ankur Nanaware",
-  email: "ankur.nanaware@example.com",
-  phone: "1234567890",
-};
+export default function Profile() {
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState<ProfileFormValues | null>(null);
 
-export function ProfileForm() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues,
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: "",
+      phone: "",
+    },
     mode: "onChange",
   });
 
-  // function onSubmit(data: ProfileFormValues) {
-  //   toast("You submitted the following values:", {
-  //     description: (
-  //       <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-  //         <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-  //       </pre>
-  //     ),
-  //   });
-  // }
-  
+  const fetchUserData = async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const response = await fetch("/api/user/profile/", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (response.status === 401) {
+        logout();
+        navigate("/signin");
+        toast("Your session has expired. Please log in again. 🔑");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+      const data = await response.json();
+      setUserData(data);
+      form.reset(data);
+    } catch (error) {
+      toast("Failed to fetch user data ❌");
+    }
+  };
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
   async function onSubmit(data: ProfileFormValues) {
     try {
       const accessToken = localStorage.getItem("accessToken");
-
       const response = await fetch("/api/user/profile/", {
-        method: "PUT", // or PATCH (based on your Django API)
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
@@ -67,96 +90,119 @@ export function ProfileForm() {
         body: JSON.stringify(data),
       });
 
+      if (response.status === 401) {
+        logout();
+        navigate("/signin");
+        toast("Your session has expired. Please log in again. 🔑");
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error("Failed to update profile");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to update profile");
       }
 
       toast("Profile updated successfully ✅");
+      await fetchUserData();
+      window.dispatchEvent(new Event('profileUpdated'));
     } catch (error) {
-      toast("Failed to update profile ❌");
+      toast(`Failed to update profile: ${error}`);
     }
   }
-
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="Your email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="Your phone number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Update Profile</Button>
-      </form>
-    </Form>
-  );
-}
-
-export default function Profile() {
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     toast("Are you sure you want to log out?", {
       action: {
         label: "Logout",
         onClick: () => {
-          logout();               // 🔥 clear tokens
+          logout();
           toast("You have been logged out.");
-          navigate("/signin");    // 🔁 redirect
+          navigate("/signin");
         },
       },
       cancel: {
         label: "Cancel",
+        onClick: () => {},
       },
     });
   };
 
+  const handleChangePassword = () => {
+    navigate('/forget-password-new', { state: { email: userData?.email } });
+  }
 
   return (
     <div className="p-4 space-y-6 max-w-2xl mx-auto">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Profile Settings</CardTitle>
-          <Button variant="destructive" onClick={handleLogout}>
-            Logout
-          </Button>
+          <div>
+            <Button variant="destructive" onClick={handleLogout} className="mr-2">
+              Logout
+            </Button>
+            <Button onClick={handleChangePassword}>
+              Change Password
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <ProfileForm />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your first name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your last name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your email" {...field} readOnly />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit">Update Profile</Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
