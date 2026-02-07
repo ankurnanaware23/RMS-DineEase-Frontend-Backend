@@ -15,12 +15,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-YOUR_SECRET_KEY'
+SECRET_KEY = env.str("DJANGO_SECRET_KEY", default="django-insecure-CHANGE_ME")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DJANGO_DEBUG", default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
 
 # Application definition
@@ -58,7 +58,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -93,7 +92,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME':'db.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -132,7 +131,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -152,24 +151,22 @@ AUTH_USER_MODEL = 'userauth.User'
 # MAILGUN_SENDER_DOMAI = env.str("MAILGUN_SENDER_DOMAI")
 
 # Email Configuration
-EMAIL_BACKEND       = env("EMAIL_BACKEND")
-EMAIL_HOST          = env("EMAIL_HOST")
-EMAIL_PORT          = env.int("EMAIL_PORT")
-EMAIL_USE_TLS       = env.bool("EMAIL_USE_TLS")
-EMAIL_HOST_USER     = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL  = env("DEFAULT_FROM_EMAIL")
+EMAIL_BACKEND       = env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST          = env.str("EMAIL_HOST", default="")
+EMAIL_PORT          = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS       = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER     = env.str("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL  = env.str("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
 
 
 ANYMAIL = {
-    "EMAIL_HOST_USER": env("EMAIL_HOST_USER"),
-    "EMAIL_HOST_PASSWORD": env("EMAIL_HOST_PASSWORD")
+    "EMAIL_HOST_USER": EMAIL_HOST_USER,
+    "EMAIL_HOST_PASSWORD": EMAIL_HOST_PASSWORD
 }
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CORS_ALLOW_ALL_ORIGINS = True
 
 #  For DEVELOPMENT
 # this is for UI view of the routes
@@ -263,11 +260,11 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=50),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=15)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=env.int("JWT_REFRESH_DAYS", default=50)),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': False,
+    'UPDATE_LAST_LOGIN': True,
 
     'ALGORITHM': 'HS256',
 
@@ -290,9 +287,9 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
-    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
-    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=env.int("JWT_SLIDING_MINUTES", default=5)),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=env.int("JWT_SLIDING_REFRESH_DAYS", default=1)),
 }
 
-# Set coresheader to allow all origin
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS (set DJANGO_CORS_ALLOW_ALL=true for local dev)
+CORS_ALLOW_ALL_ORIGINS = env.bool("DJANGO_CORS_ALLOW_ALL", default=True)

@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import User, Category, Dish, Table, Order, OrderItem, Earning
 
 # -------------------------------------------------------------------
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer  
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from userauth.models import User, Profile
 from django.contrib.auth.password_validation import validate_password
 
@@ -59,6 +60,30 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['last_name'] = user.last_name
         
         return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        # Store the latest refresh token on login
+        refresh = data.get("refresh")
+        if refresh:
+            self.user.refresh_token = refresh
+            self.user.save(update_fields=["refresh_token"])
+        return data
+
+class MyTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        # Store the latest refresh token after rotation
+        new_refresh = data.get("refresh") or attrs.get("refresh")
+        if new_refresh:
+            try:
+                token = RefreshToken(new_refresh)
+                user_id = token.get("user_id")
+                if user_id:
+                    User.objects.filter(id=user_id).update(refresh_token=new_refresh)
+            except Exception:
+                pass
+        return data
     
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -72,6 +97,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'email', 'password', 'password2']
 
     def validate(self, attrs):
+        if User.objects.filter(email=attrs.get('email')).exists():
+            raise serializers.ValidationError(
+                {"email": "This email is already registered."}
+            )
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError(
                 {"password": "Passwords do not match"}

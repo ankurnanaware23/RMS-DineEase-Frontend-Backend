@@ -14,9 +14,6 @@ from .views import (
 
 # -------------------------------------------------------------------
 from api import views as api_views
-from django.urls import path
-
-from rest_framework_simplejwt.views import TokenRefreshView
 
 # -------------------------------------------------------------------
 
@@ -34,7 +31,7 @@ urlpatterns = [
 
     # -------------------------------------------------------------------
     path('user/token/', api_views.MyTokenObtainPairView.as_view(), name='Token Obtain Pair View'),
-    path('user/token/refresh/',TokenRefreshView.as_view(), name="Token Refresh View"),
+    path('user/token/refresh/', api_views.MyTokenRefreshView.as_view(), name="Token Refresh View"),
     path('user/register/', api_views.RegisterView.as_view(), name="User Registration View"),
     path('user/password-reset/', api_views.PasswordResetEmailVerifyAPIView.as_view(), name="Password Reset View"),
     path('user/otp-verification/', OTPVerificationAPIView.as_view(), name="OTP Verification View"),

@@ -15,7 +15,7 @@ class User(AbstractUser):
     first_name      = models.CharField(max_length=30, blank=False) # due to this first_name cannot be blank even if admins try to create a new user in the admin panel
     last_name       = models.CharField(max_length=30, blank=False) # due to this last_name cannot be blank even if admins try to create a new user in the admin panel
     otp             = models.CharField(max_length=6, blank=True, null=True) # field to store OTP for verification
-    refresh_token   = models.CharField(max_length=255, blank=True, null=True) # field to store refresh token for JWT
+    refresh_token   = models.TextField(blank=True, null=True) # store the latest refresh token (rotated on login/refresh)
   
     USERNAME_FIELD = 'email' # Use email to log in
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name'] # Fields required when creating a superuser

@@ -42,7 +42,7 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      await signUp({
+      const data = await signUp({
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
@@ -50,13 +50,22 @@ export default function SignUp() {
         password2: formData.password2,
       });
 
-      toast.success("Account created!", {
-        description: "Welcome to DineEase. Please sign in to continue.",
-      });
-
-      navigate("/signin");
+      if (data?.access && data?.refresh) {
+        localStorage.setItem("accessToken", data.access);
+        localStorage.setItem("refreshToken", data.refresh);
+        toast.success("Account created!", {
+          description: "You're signed in and ready to go.",
+        });
+        navigate("/dashboard");
+      } else {
+        toast.success("Account created!", {
+          description: "Welcome to DineEase. Please sign in to continue.",
+        });
+        navigate("/signin");
+      }
     } catch (error) {
-      toast.error("Failed to create account. Please try again.");
+      const message = error instanceof Error ? error.message : "Failed to create account. Please try again.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

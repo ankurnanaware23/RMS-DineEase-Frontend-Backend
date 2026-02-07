@@ -17,7 +17,7 @@ from api import serializers as api_serializers
 from userauth.models import User, Profile
 
 from rest_framework import viewsets, status
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -35,11 +35,37 @@ class MyTokenObtainPairView(TokenObtainPairView):
         serializer = self.serializer_class()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class MyTokenRefreshView(TokenRefreshView):
+    serializer_class = api_serializers.MyTokenRefreshSerializer
+
 # this view handles user registration
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny] # AllowAny means all authenticated or unauthenticated users can access this view
     serializer_class = api_serializers.RegisterSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        refresh = api_serializers.MyTokenObtainPairSerializer.get_token(user)
+        user.refresh_token = str(refresh)
+        user.save(update_fields=["refresh_token"])
+
+        return Response(
+            {
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                },
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 # function to generate a random OTP
 def generate_otp(length):

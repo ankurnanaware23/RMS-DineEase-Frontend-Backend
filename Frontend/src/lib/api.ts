@@ -32,10 +32,15 @@ export const signUp = async (userData: any) => {
     },
     body: JSON.stringify(userData),
   });
+  const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error("Sign up failed");
+    const message =
+      data?.email?.[0] ||
+      data?.detail ||
+      "Sign up failed";
+    throw new Error(message);
   }
-  return response.json();
+  return data;
 };
 
 export const updateProfile = (data: any) => {
