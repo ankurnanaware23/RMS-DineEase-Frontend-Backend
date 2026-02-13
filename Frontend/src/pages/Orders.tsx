@@ -1,29 +1,41 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, CheckCircle, XCircle, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Clock, CheckCircle, XCircle, Trash2, Search } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRestaurantData } from '@/hooks/useRestaurantData';
+import { toast } from "sonner";
 import { AddOrderForm } from '@/components/forms/AddOrderForm';
 import { Order } from '@/types';
 
 export default function Orders() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { 
     orders, 
     menuItems,
     tables,
     addOrder, 
     updateOrderStatus,
+    completeOrderPayment,
     deleteOrder,
     updateOrderItems,
     getOrdersByStatus 
   } = useRestaurantData();
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [activeFilter, setActiveFilter] = useState("Pending");
+  const [typeFilter, setTypeFilter] = useState<'All' | 'Dine In' | 'Takeaway'>('All');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const getStatusLabel = (status: Order['status']) => {
+    if (status === 'Pending') return 'On Going';
+    return status;
+  };
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [editingItems, setEditingItems] = useState<{ dishId: string; name: string; quantity: number; }[]>([]);
@@ -31,15 +43,32 @@ export default function Orders() {
 
 
   const orderStatuses = [
-    { label: "All", active: activeFilter === "All" },
-    { label: "Pending", active: activeFilter === "Pending" },
-    { label: "In Progress", active: activeFilter === "In Progress" },
-    { label: "Ready", active: activeFilter === "Ready" },
-    { label: "Completed", active: activeFilter === "Completed" },
-    { label: "Cancelled", active: activeFilter === "Cancelled" },
+    { label: "Pending", display: "On Going", active: activeFilter === "Pending" },
+    { label: "Completed", display: "Completed", active: activeFilter === "Completed" },
+    { label: "Cancelled", display: "Cancelled", active: activeFilter === "Cancelled" },
+    { label: "All", display: "All Orders", active: activeFilter === "All" },
   ];
 
   const filteredOrders = activeFilter === "All" ? orders : getOrdersByStatus(activeFilter as Order['status']);
+
+  const filteredWithExtras = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase();
+    const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
+    const end = endDate ? new Date(`${endDate}T23:59:59`) : null;
+
+    return filteredOrders.filter(order => {
+      if (typeFilter !== 'All' && order.orderType !== typeFilter) return false;
+      if (start && order.createdAt < start) return false;
+      if (end && order.createdAt > end) return false;
+
+      if (needle) {
+        const matchesId = String(order.id).toLowerCase().includes(needle);
+        const matchesName = order.customerName.toLowerCase().includes(needle);
+        if (!matchesId && !matchesName) return false;
+      }
+      return true;
+    });
+  }, [filteredOrders, typeFilter, startDate, endDate, searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -77,12 +106,34 @@ export default function Orders() {
     updateOrderStatus(orderId, newStatus);
   };
 
+  const handlePaymentDone = (orderId: string) => {
+    completeOrderPayment(orderId);
+  };
+
   const handleCancel = (orderId: string) => {
-    updateOrderStatus(orderId, 'Cancelled');
+    toast("Do you want to cancel this order?", {
+      action: {
+        label: "Yes, cancel",
+        onClick: () => updateOrderStatus(orderId, 'Cancelled'),
+      },
+      cancel: {
+        label: "No",
+        onClick: () => {},
+      },
+    });
   };
 
   const handleDelete = (orderId: string) => {
-    deleteOrder(orderId);
+    toast("Do you want to delete this order?", {
+      action: {
+        label: "Yes, delete",
+        onClick: () => deleteOrder(orderId),
+      },
+      cancel: {
+        label: "No",
+        onClick: () => {},
+      },
+    });
   };
 
   const handleOpenEdit = (order: Order) => {
@@ -125,6 +176,15 @@ export default function Orders() {
     setEditingItems([]);
   };
 
+  const sortedOrders = [...filteredWithExtras].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'all') setActiveFilter('All');
+  }, [searchParams]);
+
   return (
     <div className="p-4 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -149,7 +209,7 @@ export default function Orders() {
               className={status.active ? "bg-muted text-foreground" : "border-border"}
               onClick={() => setActiveFilter(status.label)}
             >
-              {status.label} ({status.label === "All" ? orders.length : getOrdersByStatus(status.label as Order['status']).length})
+              {status.display} ({status.label === "All" ? orders.length : getOrdersByStatus(status.label as Order['status']).length})
             </Button>
           ))}
         </div>
@@ -163,8 +223,54 @@ export default function Orders() {
         />
       </div>
 
+      <div className="flex flex-wrap lg:flex-nowrap items-end gap-3 mb-6">
+        <div className="space-y-1 min-w-[180px]">
+          <div className="text-xs text-muted-foreground">Order Type</div>
+          <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as typeof typeFilter)}>
+            <SelectTrigger className="bg-card border-border">
+              <SelectValue placeholder="Order Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="All">All Types</SelectItem>
+              <SelectItem value="Dine In">Dine In</SelectItem>
+              <SelectItem value="Takeaway">Takeaway</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1 min-w-[200px]">
+          <div className="text-xs text-muted-foreground">Start Date</div>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="bg-card border-border"
+          />
+        </div>
+
+        <div className="space-y-1 min-w-[200px]">
+          <div className="text-xs text-muted-foreground">End Date</div>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="bg-card border-border"
+          />
+        </div>
+
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search with order no. or customer name"
+            className="bg-card border-border pl-9"
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredOrders.map((order) => {
+        {sortedOrders.map((order) => {
           const subtotal = order.items.reduce((sum, item) => sum + item.price, 0);
           const tax = Math.max(order.totalAmount - subtotal, 0);
 
@@ -183,7 +289,7 @@ export default function Orders() {
                   </div>
                   <Badge className={`${getStatusColor(order.status)} text-white flex items-center gap-1`}>
                     {getStatusIcon(order.status)}
-                    {order.status}
+                    {getStatusLabel(order.status)}
                   </Badge>
                 </div>
 
@@ -198,10 +304,19 @@ export default function Orders() {
                       <span className="text-foreground font-medium">Table {order.tableNumber}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Date:</span>
-                    <span className="text-foreground font-medium">{order.createdAt.toLocaleDateString()}</span>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Date:</span>
+                  <span className="text-foreground font-medium">
+                    {order.createdAt.toLocaleString('en-GB', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    })}
+                  </span>
+                </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Items:</span>
                     <span className="text-foreground font-medium">{order.items.length} items</span>
@@ -227,36 +342,6 @@ export default function Orders() {
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="flex gap-2 flex-wrap">
-                    {order.status === 'Pending' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleStatusUpdate(order.id, 'In Progress')}
-                        className="bg-restaurant-blue hover:bg-restaurant-blue/90 text-white flex-1"
-                      >
-                        Start Cooking
-                      </Button>
-                    )}
-                    {order.status === 'In Progress' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleStatusUpdate(order.id, 'Ready')}
-                        className="bg-restaurant-green hover:bg-restaurant-green/90 text-white flex-1"
-                      >
-                        Mark Ready
-                      </Button>
-                    )}
-                    {order.status === 'Ready' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleStatusUpdate(order.id, 'Completed')}
-                        className="bg-muted hover:bg-muted/90 text-foreground flex-1"
-                      >
-                        Mark Completed
-                      </Button>
-                    )}
-                  </div>
-
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -286,6 +371,16 @@ export default function Orders() {
                       Delete
                     </Button>
                   </div>
+
+                  {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => handlePaymentDone(order.id)}
+                      className="bg-restaurant-green hover:bg-restaurant-green/90 text-white w-full"
+                    >
+                      Payment Done
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

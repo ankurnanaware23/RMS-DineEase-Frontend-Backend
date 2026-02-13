@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Minus, Plus, Trash2 } from 'lucide-react';
@@ -24,7 +24,21 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [selectedMenuItem, setSelectedMenuItem] = useState<string>('');
 
-  const availableTables = tables.filter(table => table.status === 'Available');
+  const availableTables = tables
+    .filter(table => table.status === 'Available')
+    .sort((a, b) => a.number - b.number);
+
+  const menuItemsByCategory = menuItems.reduce((acc, item) => {
+    const key = item.category || 'Uncategorized';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {} as Record<string, MenuItem[]>);
+
+  const sortedMenuCategories = Object.keys(menuItemsByCategory).sort((a, b) => a.localeCompare(b));
+  sortedMenuCategories.forEach(category => {
+    menuItemsByCategory[category].sort((a, b) => a.name.localeCompare(b.name));
+  });
 
   const addItemToOrder = () => {
     const menuItem = menuItems.find(item => item.id === selectedMenuItem);
@@ -70,11 +84,12 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.customerName || (formData.orderType === 'Dine In' && !formData.tableId) || orderItems.length === 0) {
+    if ((formData.orderType === 'Dine In' && !formData.tableId) || (formData.orderType === 'Takeaway' && !formData.customerName) || orderItems.length === 0) {
       return;
     }
 
-    const customerInitials = formData.customerName
+    const customerName = formData.orderType === 'Dine In' ? 'Walk-in' : formData.customerName;
+    const customerInitials = customerName
       .split(' ')
       .map(name => name.charAt(0).toUpperCase())
       .join('');
@@ -84,7 +99,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
       : 0;
 
     const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
-      customerName: formData.customerName,
+      customerName,
       customerInitials,
       tableNumber,
       tableId: formData.tableId || undefined,
@@ -119,18 +134,6 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="customerName" className="text-foreground">Customer Name</Label>
-              <Input
-                id="customerName"
-                placeholder="Enter customer name"
-                value={formData.customerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                className="bg-card border-border text-foreground"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="orderType" className="text-foreground">Order Type</Label>
               <Select value={formData.orderType} onValueChange={(value: Order['orderType']) => 
                 setFormData(prev => ({ ...prev, orderType: value }))
@@ -144,6 +147,19 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                 </SelectContent>
               </Select>
             </div>
+            {formData.orderType === 'Takeaway' ? (
+              <div className="space-y-2">
+                <Label htmlFor="customerName" className="text-foreground">Customer Name</Label>
+                <Input
+                  id="customerName"
+                  placeholder="Enter customer name"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                  className="bg-card border-border text-foreground"
+                  required
+                />
+              </div>
+            ) : null}
           </div>
 
           {formData.orderType === 'Dine In' && (
@@ -174,10 +190,17 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                   <SelectValue placeholder="Select menu item" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  {menuItems.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name} - ?{item.price}
-                    </SelectItem>
+                  {sortedMenuCategories.map(category => (
+                    <SelectGroup key={category}>
+                      <SelectLabel className="text-xs uppercase tracking-wider text-restaurant-blue/90 bg-restaurant-blue/10 px-2 py-1 rounded-md">
+                        {category}
+                      </SelectLabel>
+                      {menuItemsByCategory[category].map(item => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name} - ?{item.price}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>

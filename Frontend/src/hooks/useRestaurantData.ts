@@ -151,6 +151,36 @@ export function useRestaurantData() {
 
   const addOrder = useCallback(async (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      if (orderData.orderType === 'Dine In' && orderData.tableId) {
+        const existingOrder = orders.find(order =>
+          order.tableId === orderData.tableId &&
+          order.status !== 'Completed' &&
+          order.status !== 'Cancelled'
+        );
+
+        if (existingOrder) {
+          const mergedItems = [...existingOrder.items];
+          orderData.items.forEach(item => {
+            const dishId = item.dishId || item.id;
+            const existingItem = mergedItems.find(existing => (existing.dishId || existing.id) === dishId);
+            if (existingItem) {
+              existingItem.quantity += item.quantity;
+            } else {
+              mergedItems.push({ ...item, dishId, id: String(dishId) });
+            }
+          });
+
+          await api.updateOrderItems(existingOrder.id, mergedItems.map(item => ({
+            dishId: String(item.dishId || item.id),
+            quantity: item.quantity,
+          })));
+
+          toast({ title: "Order Updated", description: `Order for Table ${existingOrder.tableNumber} updated.` });
+          fetchData();
+          return;
+        }
+      }
+
       const newOrder = await api.addOrder(orderData);
       setOrders(prev => [...prev, newOrder]);
       toast({ title: "Order Added", description: `Order for ${newOrder.customerName} has been added.` });
@@ -158,27 +188,81 @@ export function useRestaurantData() {
     } catch (error) {
       toast({ title: "Error", description: "Failed to add order.", variant: "destructive" });
     }
-  }, [toast, fetchData]);
+  }, [toast, fetchData, orders]);
 
   const updateOrderStatus = useCallback(async (orderId: string, status: Order['status']) => {
     try {
+      const order = orders.find(item => item.id === orderId);
       await api.updateOrderStatus(orderId, status);
-      setOrders(prev => prev.map(order => order.id === orderId ? { ...order, status } : order));
+
+      if (status === 'Cancelled' && order?.tableId) {
+        await api.updateTable(order.tableId, {
+          status: 'Available',
+          customer: undefined,
+          reservationTime: undefined,
+        });
+        setTables(prev => prev.map(table =>
+          table.id === order.tableId
+            ? { ...table, status: 'Available', customer: undefined, reservationTime: undefined }
+            : table
+        ));
+      }
+
+      setOrders(prev => prev.map(orderItem => orderItem.id === orderId ? { ...orderItem, status } : orderItem));
       toast({ title: "Order Updated", description: "Order status updated." });
+      fetchData();
     } catch (error) {
       toast({ title: "Error", description: "Failed to update order status.", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, orders, fetchData]);
+
+  const completeOrderPayment = useCallback(async (orderId: string) => {
+    try {
+      const order = orders.find(item => item.id === orderId);
+      await api.updateOrderStatus(orderId, 'Completed');
+      if (order?.tableId) {
+        await api.updateTable(order.tableId, {
+          status: 'Available',
+          customer: undefined,
+          reservationTime: undefined,
+        });
+      }
+      setOrders(prev => prev.map(item => item.id === orderId ? { ...item, status: 'Completed' } : item));
+      if (order?.tableId) {
+        setTables(prev => prev.map(table => table.id === order.tableId ? { ...table, status: 'Available', customer: undefined, reservationTime: undefined } : table));
+      }
+      toast({ title: "Payment Done", description: "Order completed and table freed." });
+      fetchData();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to complete payment.", variant: "destructive" });
+    }
+  }, [orders, toast, fetchData]);
 
   const deleteOrder = useCallback(async (orderId: string) => {
     try {
+      const order = orders.find(item => item.id === orderId);
       await api.deleteOrder(orderId);
-      setOrders(prev => prev.filter(order => order.id !== orderId));
+      setOrders(prev => prev.filter(item => item.id !== orderId));
+
+      if (order?.tableId) {
+        await api.updateTable(order.tableId, {
+          status: 'Available',
+          customer: undefined,
+          reservationTime: undefined,
+        });
+        setTables(prev => prev.map(table =>
+          table.id === order.tableId
+            ? { ...table, status: 'Available', customer: undefined, reservationTime: undefined }
+            : table
+        ));
+      }
+
       toast({ title: "Order Deleted", description: "Order removed." });
+      fetchData();
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete order.", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, orders, fetchData]);
 
   const updateOrderItems = useCallback(async (orderId: string, items: { dishId: string; quantity: number }[]) => {
     try {
@@ -239,6 +323,7 @@ export function useRestaurantData() {
     bookTable,
     addOrder,
     updateOrderStatus,
+    completeOrderPayment,
     deleteOrder,
     updateOrderItems,
     addMenuItem,
