@@ -197,7 +197,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                       </SelectLabel>
                       {menuItemsByCategory[category].map(item => (
                         <SelectItem key={item.id} value={item.id}>
-                          {item.name} - ?{item.price}
+                          {item.name} - Rs. {item.price}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -225,7 +225,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-foreground">{item.name}</div>
-                          <div className="text-sm text-muted-foreground">?{item.price} each</div>
+                          <div className="text-sm text-muted-foreground">Rs. {item.price} each</div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -254,7 +254,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                             <Trash2 className="h-3 w-3" />
                           </Button>
                           <div className="text-foreground font-medium min-w-16 text-right">
-                            ?{item.price * item.quantity}
+                            Rs. {item.price * item.quantity}
                           </div>
                         </div>
                       </div>

@@ -64,22 +64,44 @@ export default function Dashboard() {
     return <div>Loading...</div>; 
   }
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const todayOrders = orders.filter(order => {
+    const createdAt = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+    return !Number.isNaN(createdAt.getTime()) && createdAt >= todayStart && createdAt <= todayEnd;
+  });
+
+  const todayCompletedEarnings = todayOrders
+    .filter(order => order.status === 'Completed')
+    .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+
+  const todayOngoingAmount = todayOrders
+    .filter(order => order.status !== 'Completed' && order.status !== 'Cancelled')
+    .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+
+  const todayCompletedCount = todayOrders.filter(order => order.status === 'Completed').length;
+
   const metrics = [
     {
       title: "Today's Earning",
-      value: stats.totalEarnings.toString(),
+      value: todayCompletedEarnings.toFixed(2),
       change: "1.6%",
       changeType: "increase",
       icon: DollarSign,
       color: "bg-restaurant-green",
+      isCurrency: true,
     },
     {
       title: "In Progress",
-      value: stats.inProgressOrders.toString(),
+      value: todayOngoingAmount.toFixed(2),
       change: "3.6%",
       changeType: "increase",
       icon: Clock,
       color: "bg-restaurant-orange",
+      isCurrency: true,
     },
   ];
 
@@ -110,13 +132,51 @@ export default function Dashboard() {
     },
   ];
 
-  // Filter recent orders based on search
-  const recentOrders = getOrdersByStatus('Ready')
-    .filter(order => 
-      searchTerm === '' || 
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .slice(0, 5);
+  const getStatusLabel = (status: string) => {
+    if (status === 'Pending') return 'On Going';
+    return status;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'text-restaurant-orange';
+      case 'Completed':
+        return 'text-restaurant-green';
+      case 'Cancelled':
+        return 'text-restaurant-red';
+      default:
+        return 'text-muted-foreground';
+    }
+  };
+
+  const getStatusDot = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'bg-restaurant-orange';
+      case 'Completed':
+        return 'bg-restaurant-green';
+      case 'Cancelled':
+        return 'bg-restaurant-red';
+      default:
+        return 'bg-muted';
+    }
+  };
+
+  // Recent orders: today's last 10, filtered by search
+  const recentOrders = todayOrders
+    .filter(order => {
+      if (!searchTerm.trim()) return true;
+      return String(order.customerName || '')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    })
+    .sort((a, b) => {
+      const aTime = (a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)).getTime();
+      const bTime = (b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 10);
 
   // Calculate popular dishes from order data
   const dishCounts = orders.reduce((acc, order) => {
@@ -138,7 +198,7 @@ export default function Dashboard() {
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
-      hour12: false,
+      hour12: true,
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
@@ -158,7 +218,7 @@ export default function Dashboard() {
       {/* Welcome Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Good Morning, {userName}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome, {userName}</h1>
           <p className="text-muted-foreground">Give your best services for customers 😊</p>
         </div>
         <div className="text-right">
@@ -201,7 +261,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm text-muted-foreground">{metric.title}</p>
                     <p className="text-2xl font-bold text-foreground">
-                      {metric.title === "Today's Earning" ? `₹${metric.value}` : metric.value}
+                      {metric.isCurrency ? `₹${metric.value}` : metric.value}
                     </p>
                     <div className="flex items-center gap-1 mt-1">
                       {metric.changeType === "increase" ? (
@@ -227,8 +287,8 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Today's Total Customer</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.totalCustomers}</p>
+                  <p className="text-sm text-muted-foreground">Today's Completed Orders</p>
+                  <p className="text-2xl font-bold text-foreground">{todayCompletedCount}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <TrendingUp className="h-3 w-3 text-restaurant-green" />
                     <span className="text-xs text-restaurant-green">10% than yesterday</span>
@@ -309,13 +369,14 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <Badge className="bg-restaurant-orange text-white mb-1">Table No: {order.tableNumber}</Badge>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-restaurant-green rounded-full"></div>
-                          <span className="text-sm text-restaurant-green">{order.status}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <div className={`w-2 h-2 ${getStatusDot(order.status)} rounded-full`}></div>
+                            <span className={`text-sm ${getStatusColor(order.status)}`}>
+                              {getStatusLabel(order.status)}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">Ready to serve</span>
-                      </div>
                     </div>
                   </div>
                 </CardContent>
