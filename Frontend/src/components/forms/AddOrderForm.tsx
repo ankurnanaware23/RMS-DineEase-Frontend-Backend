@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     customerName: '',
-    tableNumber: '',
+    tableId: '',
     orderType: 'Dine In' as Order['orderType'],
   });
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -40,6 +40,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
     } else {
       const newOrderItem: OrderItem = {
         id: menuItem.id,
+        dishId: menuItem.id,
         name: menuItem.name,
         price: menuItem.price,
         quantity: 1,
@@ -68,8 +69,8 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.customerName || !formData.tableNumber || orderItems.length === 0) {
+
+    if (!formData.customerName || (formData.orderType === 'Dine In' && !formData.tableId) || orderItems.length === 0) {
       return;
     }
 
@@ -78,10 +79,15 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
       .map(name => name.charAt(0).toUpperCase())
       .join('');
 
+    const tableNumber = formData.tableId
+      ? (tables.find(table => table.id === formData.tableId)?.number || 0)
+      : 0;
+
     const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
       customerName: formData.customerName,
       customerInitials,
-      tableNumber: parseInt(formData.tableNumber),
+      tableNumber,
+      tableId: formData.tableId || undefined,
       orderType: formData.orderType,
       items: orderItems,
       status: 'Pending',
@@ -90,11 +96,10 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
 
     onAddOrder(orderData);
     setOpen(false);
-    
-    // Reset form
+
     setFormData({
       customerName: '',
-      tableNumber: '',
+      tableId: '',
       orderType: 'Dine In',
     });
     setOrderItems([]);
@@ -124,7 +129,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="orderType" className="text-foreground">Order Type</Label>
               <Select value={formData.orderType} onValueChange={(value: Order['orderType']) => 
@@ -136,24 +141,23 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="Dine In">Dine In</SelectItem>
                   <SelectItem value="Takeaway">Takeaway</SelectItem>
-                  <SelectItem value="Delivery">Delivery</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
+
           {formData.orderType === 'Dine In' && (
             <div className="space-y-2">
-              <Label htmlFor="tableNumber" className="text-foreground">Table Number</Label>
-              <Select value={formData.tableNumber} onValueChange={(value) => 
-                setFormData(prev => ({ ...prev, tableNumber: value }))
+              <Label htmlFor="tableNumber" className="text-foreground">Table</Label>
+              <Select value={formData.tableId} onValueChange={(value) => 
+                setFormData(prev => ({ ...prev, tableId: value }))
               }>
                 <SelectTrigger className="bg-card border-border text-foreground">
                   <SelectValue placeholder="Select table" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {availableTables.map((table) => (
-                    <SelectItem key={table.id} value={table.number.toString()}>
+                    <SelectItem key={table.id} value={table.id}>
                       Table {table.number} ({table.seats} seats)
                     </SelectItem>
                   ))}
@@ -161,7 +165,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
               </Select>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <Label className="text-foreground">Add Items</Label>
             <div className="flex gap-2">
@@ -172,7 +176,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                 <SelectContent className="bg-card border-border">
                   {menuItems.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.name} - ₹{item.price}
+                      {item.name} - ?{item.price}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -187,7 +191,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
               </Button>
             </div>
           </div>
-          
+
           {orderItems.length > 0 && (
             <div className="space-y-2">
               <Label className="text-foreground">Order Items</Label>
@@ -198,7 +202,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-foreground">{item.name}</div>
-                          <div className="text-sm text-muted-foreground">₹{item.price} each</div>
+                          <div className="text-sm text-muted-foreground">?{item.price} each</div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -227,7 +231,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
                             <Trash2 className="h-3 w-3" />
                           </Button>
                           <div className="text-foreground font-medium min-w-16 text-right">
-                            ₹{item.price * item.quantity}
+                            ?{item.price * item.quantity}
                           </div>
                         </div>
                       </div>
@@ -237,23 +241,23 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-foreground">
-                  Total: ₹{totalAmount}
+                  Total: ?{totalAmount}
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setOpen(false)}
               className="border-border"
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="bg-restaurant-green hover:bg-restaurant-green/90"
               disabled={orderItems.length === 0}
             >

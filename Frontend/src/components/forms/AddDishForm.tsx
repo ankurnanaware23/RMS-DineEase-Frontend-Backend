@@ -18,6 +18,7 @@ export function AddDishForm({ onAddDish, categories }: AddDishFormProps) {
     price: '',
     description: '',
     categoryId: '',
+    isVeg: 'true',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -28,16 +29,22 @@ export function AddDishForm({ onAddDish, categories }: AddDishFormProps) {
       ...formData,
       price: parseFloat(formData.price),
       categoryId: parseInt(formData.categoryId),
+      isVeg: formData.isVeg === 'true',
+      category: '',
+      available: true,
+      preparationTime: 20,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     setOpen(false);
-    setFormData({ name: '', price: '', description: '', categoryId: '' });
+    setFormData({ name: '', price: '', description: '', categoryId: '', isVeg: 'true' });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="border-border">
-          Add Dishes 🔼
+          Add Dishes ??
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
@@ -89,6 +96,18 @@ export function AddDishForm({ onAddDish, categories }: AddDishFormProps) {
                     <SelectItem key={category.id} value={category.id.toString()}>{category.name}</SelectItem>
                 ))}
                 </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="veg" className="text-foreground">Type</Label>
+            <Select onValueChange={(value) => setFormData(prev => ({ ...prev, isVeg: value }))} value={formData.isVeg}>
+              <SelectTrigger className="bg-card border-border text-foreground">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="true">Veg</SelectItem>
+                <SelectItem value="false">Non-Veg</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="flex justify-end space-x-2 pt-4">

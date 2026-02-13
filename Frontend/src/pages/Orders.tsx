@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRestaurantData } from '@/hooks/useRestaurantData';
 import { AddOrderForm } from '@/components/forms/AddOrderForm';
@@ -12,13 +15,20 @@ export default function Orders() {
   const navigate = useNavigate();
   const { 
     orders, 
-    menuItems, 
-    tables, 
+    menuItems,
+    tables,
     addOrder, 
-    updateOrderStatus, 
+    updateOrderStatus,
+    deleteOrder,
+    updateOrderItems,
     getOrdersByStatus 
   } = useRestaurantData();
   const [activeFilter, setActiveFilter] = useState("All");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editingItems, setEditingItems] = useState<{ dishId: string; name: string; quantity: number; }[]>([]);
+  const [selectedMenuItem, setSelectedMenuItem] = useState('');
+
 
   const orderStatuses = [
     { label: "All", active: activeFilter === "All" },
@@ -26,6 +36,7 @@ export default function Orders() {
     { label: "In Progress", active: activeFilter === "In Progress" },
     { label: "Ready", active: activeFilter === "Ready" },
     { label: "Completed", active: activeFilter === "Completed" },
+    { label: "Cancelled", active: activeFilter === "Cancelled" },
   ];
 
   const filteredOrders = activeFilter === "All" ? orders : getOrdersByStatus(activeFilter as Order['status']);
@@ -66,9 +77,56 @@ export default function Orders() {
     updateOrderStatus(orderId, newStatus);
   };
 
+  const handleCancel = (orderId: string) => {
+    updateOrderStatus(orderId, 'Cancelled');
+  };
+
+  const handleDelete = (orderId: string) => {
+    deleteOrder(orderId);
+  };
+
+  const handleOpenEdit = (order: Order) => {
+    setEditingOrderId(order.id);
+    setEditingItems(order.items.map(item => ({
+      dishId: item.dishId || item.id,
+      name: item.name,
+      quantity: item.quantity,
+    })));
+    setIsEditOpen(true);
+  };
+
+  const handleAddItem = () => {
+    if (!selectedMenuItem) return;
+    const menuItem = menuItems.find(item => item.id === selectedMenuItem);
+    if (!menuItem) return;
+
+    setEditingItems(prev => {
+      const existing = prev.find(item => item.dishId === menuItem.id);
+      if (existing) {
+        return prev.map(item => item.dishId === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { dishId: menuItem.id, name: menuItem.name, quantity: 1 }];
+    });
+    setSelectedMenuItem('');
+  };
+
+  const handleUpdateQuantity = (dishId: string, delta: number) => {
+    setEditingItems(prev => prev
+      .map(item => item.dishId === dishId ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item)
+      .filter(item => item.quantity > 0)
+    );
+  };
+
+  const handleSaveItems = async () => {
+    if (!editingOrderId) return;
+    await updateOrderItems(editingOrderId, editingItems.map(item => ({ dishId: item.dishId, quantity: item.quantity })));
+    setIsEditOpen(false);
+    setEditingOrderId(null);
+    setEditingItems([]);
+  };
+
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Button 
@@ -82,7 +140,6 @@ export default function Orders() {
           <h1 className="text-2xl font-bold text-foreground">Orders</h1>
         </div>
 
-        {/* Status Filters */}
         <div className="flex gap-2 flex-wrap">
           {orderStatuses.map((status) => (
             <Button
@@ -98,7 +155,6 @@ export default function Orders() {
         </div>
       </div>
 
-      {/* Add Order Button */}
       <div className="mb-4">
         <AddOrderForm 
           onAddOrder={addOrder}
@@ -107,90 +163,134 @@ export default function Orders() {
         />
       </div>
 
-      {/* Orders Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredOrders.map((order) => (
-          <Card key={order.id} className="bg-card border-border hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              {/* Order Header */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                    {order.customerInitials}
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground">{order.customerName}</div>
-                    <div className="text-xs text-muted-foreground">ID: {order.id}</div>
-                  </div>
-                </div>
-                <Badge className={`${getStatusColor(order.status)} text-white flex items-center gap-1`}>
-                  {getStatusIcon(order.status)}
-                  {order.status}
-                </Badge>
-              </div>
+        {filteredOrders.map((order) => {
+          const subtotal = order.items.reduce((sum, item) => sum + item.price, 0);
+          const tax = Math.max(order.totalAmount - subtotal, 0);
 
-              {/* Order Details */}
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Type:</span>
-                  <span className="text-foreground font-medium">{order.orderType}</span>
+          return (
+            <Card key={order.id} className="bg-card border-border hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-semibold text-sm">
+                      {order.customerInitials}
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground">{order.customerName}</div>
+                      <div className="text-xs text-muted-foreground">ID: {order.id}</div>
+                    </div>
+                  </div>
+                  <Badge className={`${getStatusColor(order.status)} text-white flex items-center gap-1`}>
+                    {getStatusIcon(order.status)}
+                    {order.status}
+                  </Badge>
                 </div>
-                {order.orderType === 'Dine In' && (
+
+                <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Table:</span>
-                    <span className="text-foreground font-medium">Table {order.tableNumber}</span>
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="text-foreground font-medium">{order.orderType}</span>
                   </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Date:</span>
-                  <span className="text-foreground font-medium">{order.createdAt.toLocaleDateString()}</span>
+                  {order.orderType === 'Dine In' && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Table:</span>
+                      <span className="text-foreground font-medium">Table {order.tableNumber}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Date:</span>
+                    <span className="text-foreground font-medium">{order.createdAt.toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Items:</span>
+                    <span className="text-foreground font-medium">{order.items.length} items</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {order.items.map(item => item.category).filter(Boolean).join(', ') || 'No categories'}
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Items:</span>
-                  <span className="text-foreground font-medium">{order.items.length} items</span>
-                </div>
-              </div>
 
-              {/* Order Total and Actions */}
-              <div className="space-y-3 pt-3 border-t border-border">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-foreground">₹{order.totalAmount}</span>
+                <div className="border-t border-border pt-3 mb-3">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-foreground">Rs. {subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Tax/Charges</span>
+                    <span className="text-foreground">Rs. {tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span>Rs. {order.totalAmount.toFixed(2)}</span>
+                  </div>
                 </div>
-                
-                {/* Status Update Buttons */}
-                <div className="flex gap-2">
-                  {order.status === 'Pending' && (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleStatusUpdate(order.id, 'In Progress')}
-                      className="bg-restaurant-blue hover:bg-restaurant-blue/90 text-white flex-1"
+
+                <div className="space-y-3 pt-3 border-t border-border">
+                  <div className="flex gap-2 flex-wrap">
+                    {order.status === 'Pending' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleStatusUpdate(order.id, 'In Progress')}
+                        className="bg-restaurant-blue hover:bg-restaurant-blue/90 text-white flex-1"
+                      >
+                        Start Cooking
+                      </Button>
+                    )}
+                    {order.status === 'In Progress' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleStatusUpdate(order.id, 'Ready')}
+                        className="bg-restaurant-green hover:bg-restaurant-green/90 text-white flex-1"
+                      >
+                        Mark Ready
+                      </Button>
+                    )}
+                    {order.status === 'Ready' && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleStatusUpdate(order.id, 'Completed')}
+                        className="bg-muted hover:bg-muted/90 text-foreground flex-1"
+                      >
+                        Mark Completed
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleOpenEdit(order)}
                     >
-                      Start Cooking
+                      View / Edit
                     </Button>
-                  )}
-                  {order.status === 'In Progress' && (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleStatusUpdate(order.id, 'Ready')}
-                      className="bg-restaurant-green hover:bg-restaurant-green/90 text-white flex-1"
+                    {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-restaurant-red border-restaurant-red"
+                        onClick={() => handleCancel(order.id)}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleDelete(order.id)}
                     >
-                      Mark Ready
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
                     </Button>
-                  )}
-                  {order.status === 'Ready' && (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleStatusUpdate(order.id, 'Completed')}
-                      className="bg-muted hover:bg-muted/90 text-foreground flex-1"
-                    >
-                      Mark Completed
-                    </Button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {filteredOrders.length === 0 && (
@@ -198,6 +298,52 @@ export default function Orders() {
           <p className="text-muted-foreground">No orders found for the selected filter.</p>
         </div>
       )}
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Order Items</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select menu item" />
+                </SelectTrigger>
+                <SelectContent>
+                  {menuItems.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" onClick={handleAddItem} disabled={!selectedMenuItem}>Add</Button>
+            </div>
+
+            <div className="space-y-2">
+              {editingItems.length === 0 && (
+                <p className="text-sm text-muted-foreground">No items added yet.</p>
+              )}
+              {editingItems.map(item => (
+                <div key={item.dishId} className="flex items-center justify-between border border-border rounded-md px-3 py-2">
+                  <div className="text-sm font-medium">{item.name}</div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateQuantity(item.dishId, -1)}>-</Button>
+                    <span className="w-6 text-center">{item.quantity}</span>
+                    <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateQuantity(item.dishId, 1)}>+</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={handleSaveItems}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

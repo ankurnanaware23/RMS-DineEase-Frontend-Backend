@@ -56,331 +56,277 @@ export const updateProfile = (data: any) => {
   });
 };
 
-// This is mock data. Once the Django backend is ready, these will be replaced with actual API calls.
+type TableApi = {
+  id: number | string;
+  table_number: string;
+  seats: number;
+  status: "Available" | "Booked" | "Occupied";
+  customer_name?: string | null;
+  booking_time?: string | null;
+};
 
-let initialTables: Table[] = [
-  {
-    id: "1",
-    number: 1,
-    status: "Booked",
-    customer: "AN",
-    seats: 4,
-    reservationTime: "19:30",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    number: 2,
-    status: "Available",
-    seats: 6,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    number: 3,
-    status: "Available",
-    seats: 2,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    number: 4,
-    status: "Occupied",
-    customer: "JD",
-    seats: 4,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    number: 5,
-    status: "Available",
-    seats: 8,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "6",
-    number: 6,
-    status: "Booked",
-    customer: "SM",
-    seats: 4,
-    reservationTime: "20:00",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "7",
-    number: 7,
-    status: "Available",
-    seats: 2,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "8",
-    number: 8,
-    status: "Occupied",
-    customer: "RS",
-    seats: 6,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "9",
-    number: 9,
-    status: "Available",
-    seats: 4,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "10",
-    number: 10,
-    status: "Available",
-    seats: 8,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+type CategoryApi = {
+  id: number;
+  name: string;
+};
 
-let initialOrders: Order[] = [
-  {
-    id: "1",
-    customerName: "Ankur Nanaware",
-    customerInitials: "AN",
-    tableNumber: 3,
-    items: [
-      {
-        id: "1",
-        name: "Butter Chicken",
-        price: 320,
-        quantity: 2,
-        category: "Main Course",
-      },
-      { id: "2", name: "Naan", price: 80, quantity: 4, category: "Bread" },
-    ],
-    status: "Ready",
-    totalAmount: 640,
-    orderType: "Dine In",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    customerName: "John Doe",
-    customerInitials: "JD",
-    tableNumber: 5,
-    items: [
-      {
-        id: "3",
-        name: "Pizza",
-        price: 450,
-        quantity: 1,
-        category: "Main Course",
-      },
-      { id: "4", name: "Coke", price: 50, quantity: 2, category: "Beverages" },
-    ],
-    status: "Ready",
-    totalAmount: 550,
-    orderType: "Dine In",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    customerName: "Jane Doe",
-    customerInitials: "JD",
-    tableNumber: 2,
-    items: [
-      { id: "5", name: "Salad", price: 150, quantity: 1, category: "Starters" },
-    ],
-    status: "Ready",
-    totalAmount: 150,
-    orderType: "Dine In",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    customerName: "Ankur Nanaware",
-    customerInitials: "AN",
-    tableNumber: 1,
-    items: [
-      {
-        id: "1",
-        name: "Butter Chicken",
-        price: 320,
-        quantity: 1,
-        category: "Main Course",
-      },
-    ],
-    status: "Ready",
-    totalAmount: 320,
-    orderType: "Dine In",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    customerName: "John Doe",
-    customerInitials: "JD",
-    tableNumber: 4,
-    items: [
-      {
-        id: "3",
-        name: "Pizza",
-        price: 450,
-        quantity: 2,
-        category: "Main Course",
-      },
-    ],
-    status: "Ready",
-    totalAmount: 900,
-    orderType: "Dine In",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+type DishApi = {
+  id: number;
+  name: string;
+  description: string;
+  price: string | number;
+  category: number;
+  is_veg: boolean;
+};
 
-let initialMenuItems: MenuItem[] = [
-  {
-    id: "1",
-    name: "Butter Chicken",
-    price: 320,
-    category: "Main Course",
-    description: "Creamy and rich chicken curry",
-    available: true,
-    preparationTime: 25,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    name: "Naan",
-    price: 80,
-    category: "Bread",
-    description: "Soft and fluffy Indian bread",
-    available: true,
-    preparationTime: 10,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    name: "Pizza",
-    price: 450,
-    category: "Main Course",
-    description: "Cheesy and delicious pizza",
-    available: true,
-    preparationTime: 30,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    name: "Coke",
-    price: 50,
-    category: "Beverages",
-    description: "Refreshing cola drink",
-    available: true,
-    preparationTime: 5,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    name: "Salad",
-    price: 150,
-    category: "Starters",
-    description: "Healthy and fresh salad",
-    available: true,
-    preparationTime: 15,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "6",
-    name: "Burger",
-    price: 250,
-    category: "Main Course",
-    description: "Juicy and delicious burger",
-    available: true,
-    preparationTime: 20,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "7",
-    name: "Fries",
-    price: 100,
-    category: "Starters",
-    description: "Crispy and salty fries",
-    available: true,
-    preparationTime: 10,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "8",
-    name: "Ice Cream",
-    price: 120,
-    category: "Desserts",
-    description: "Cool and sweet ice cream",
-    available: true,
-    preparationTime: 5,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "9",
-    name: "Chocolate Cake",
-    price: 200,
-    category: "Desserts",
-    description: "Rich and moist chocolate cake",
-    available: true,
-    preparationTime: 30,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "10",
-    name: "Coffee",
-    price: 100,
-    category: "Beverages",
-    description: "Hot and aromatic coffee",
-    available: true,
-    preparationTime: 5,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "11",
-    name: "Tea",
-    price: 80,
-    category: "Beverages",
-    description: "Hot and soothing tea",
-    available: true,
-    preparationTime: 5,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+type OrderItemApi = {
+  id: number;
+  dish: number;
+  dish_name: string;
+  quantity: number;
+  price: string | number;
+};
 
-let initialCategories: Category[] = [
-  {
-    id: "1",
-    name: "Main Course",
-    emoji: "🍗",
-    color: "bg-restaurant-orange",
-    itemCount: 15,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+type OrderApi = {
+  id: number;
+  table: number | null;
+  customer_name: string;
+  status: "Pending" | "In Progress" | "Ready" | "Completed" | "Cancelled";
+  order_type: "Dine In" | "Takeaway";
+  created_at: string;
+  total_amount: string | number;
+  items: OrderItemApi[];
+};
+
+const toTimeString = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+  return date.toLocaleString([], { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
+
+const toBookingDateTime = (time: string | undefined) => {
+  if (!time) return null;
+  const [hours, minutes] = time.split(":");
+  const date = new Date();
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+  return date.toISOString();
+};
+
+const mapTableFromApi = (table: TableApi): Table => ({
+  id: String(table.id),
+  number: Number.parseInt(String(table.table_number), 10),
+  status: table.status,
+  customer: table.customer_name || undefined,
+  seats: table.seats,
+  reservationTime: table.booking_time ? toTimeString(table.booking_time) : undefined,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
+const mapTableToApi = (
+  data: Partial<Omit<Table, "id" | "createdAt" | "updatedAt">>
+) => {
+  const payload: Record<string, unknown> = {};
+
+  if (data.number !== undefined) payload.table_number = String(data.number);
+  if (data.seats !== undefined) payload.seats = data.seats;
+  if (data.status !== undefined) payload.status = data.status;
+  if (data.customer !== undefined) payload.customer_name = data.customer ?? null;
+  if (data.reservationTime !== undefined) {
+    payload.booking_time = data.reservationTime
+      ? toBookingDateTime(data.reservationTime)
+      : null;
+  }
+
+  return payload;
+};
+
+const mapCategoryFromApi = (category: CategoryApi): Category => ({
+  id: String(category.id),
+  name: category.name,
+});
+
+const mapDishFromApi = (dish: DishApi): MenuItem => ({
+  id: String(dish.id),
+  name: dish.name,
+  price: Number(dish.price),
+  category: "",
+  categoryId: dish.category,
+  description: dish.description,
+  available: true,
+  preparationTime: 20,
+  isVeg: dish.is_veg,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
+const mapOrderFromApi = (order: OrderApi, tables: Table[]): Order => {
+  const table = tables.find(item => item.id === String(order.table));
+  const tableNumber = table ? table.number : 0;
+  const customerInitials = order.customer_name
+    .split(' ')
+    .map(name => name.charAt(0).toUpperCase())
+    .join('');
+
+  return {
+    id: String(order.id),
+    customerName: order.customer_name,
+    customerInitials,
+    tableNumber,
+    tableId: order.table ? String(order.table) : undefined,
+    items: order.items.map(item => ({
+      id: String(item.id),
+      dishId: String(item.dish),
+      name: item.dish_name,
+      price: Number(item.price),
+      quantity: item.quantity,
+      category: '',
+    })),
+    status: order.status,
+    totalAmount: Number(order.total_amount),
+    createdAt: new Date(order.created_at),
+    updatedAt: new Date(order.created_at),
+    orderType: order.order_type,
+  };
+};
+
+export const getTables = async (): Promise<Table[]> => {
+  const response = await api.get(`${API_BASE_URL}/tables/`);
+  return response.data.map(mapTableFromApi);
+};
+
+export const addTable = async (
+  tableData: Omit<Table, "id" | "createdAt" | "updatedAt">
+): Promise<Table> => {
+  const response = await api.post(
+    `${API_BASE_URL}/tables/`,
+    mapTableToApi(tableData)
+  );
+  return mapTableFromApi(response.data);
+};
+
+export const updateTable = async (
+  tableId: string,
+  updates: Partial<Omit<Table, "id" | "createdAt" | "updatedAt">>
+): Promise<Table> => {
+  const response = await api.patch(
+    `${API_BASE_URL}/tables/${tableId}/`,
+    mapTableToApi(updates)
+  );
+  return mapTableFromApi(response.data);
+};
+
+export const deleteTable = async (tableId: string): Promise<void> => {
+  await api.delete(`${API_BASE_URL}/tables/${tableId}/`);
+};
+
+export const bookTable = async (
+  tableId: string,
+  customerName: string,
+  reservationDateTime: string
+): Promise<Table> => {
+  const bookingTime = new Date(reservationDateTime).toISOString();
+
+  const response = await api.post(`${API_BASE_URL}/tables/${tableId}/book/`, {
+    customer_name: customerName,
+    booking_time: bookingTime,
+  });
+
+  return mapTableFromApi(response.data);
+};
+
+export const getCategories = async (): Promise<Category[]> => {
+  const response = await api.get(`${API_BASE_URL}/categories/`);
+  return response.data.map(mapCategoryFromApi);
+};
+
+export const getMenuItems = async (): Promise<MenuItem[]> => {
+  const response = await api.get(`${API_BASE_URL}/dishes/`);
+  return response.data.map(mapDishFromApi);
+};
+
+export const addMenuItem = async (
+  itemData: Omit<MenuItem, "id" | "createdAt" | "updatedAt">
+): Promise<MenuItem> => {
+  const payload = {
+    name: itemData.name,
+    description: itemData.description || "",
+    price: itemData.price,
+    category: itemData.categoryId,
+    is_veg: itemData.isVeg ?? true,
+  };
+  const response = await api.post(`${API_BASE_URL}/dishes/`, payload);
+  return mapDishFromApi(response.data);
+};
+
+export const addCategory = async (
+  categoryData: Omit<Category, "id" | "createdAt" | "updatedAt">
+): Promise<Category> => {
+  const response = await api.post(`${API_BASE_URL}/categories/`, {
+    name: categoryData.name,
+  });
+  return mapCategoryFromApi(response.data);
+};
+
+export const getOrders = async (tables: Table[]): Promise<Order[]> => {
+  const response = await api.get(`${API_BASE_URL}/orders/`);
+  return response.data.map((order: OrderApi) => mapOrderFromApi(order, tables));
+};
+
+export const addOrder = async (
+  orderData: Omit<Order, "id" | "createdAt" | "updatedAt">
+): Promise<Order> => {
+  const payload = {
+    table: orderData.tableId ? Number(orderData.tableId) : null,
+    customer_name: orderData.customerName,
+    status: orderData.status,
+    order_type: orderData.orderType,
+    items: orderData.items.map(item => ({
+      dish: Number(item.dishId || item.id),
+      quantity: item.quantity,
+    })),
+  };
+
+  try {
+    const response = await api.post(`${API_BASE_URL}/orders/`, payload);
+    return mapOrderFromApi(response.data, []);
+  } catch (error: any) {
+    if (error?.response?.data) {
+      console.error('Order create error:', error.response.data);
+    }
+    throw error;
+  }
+};
+
+export const updateOrderStatus = async (
+  orderId: string,
+  status: Order['status']
+): Promise<void> => {
+  await api.patch(`${API_BASE_URL}/orders/${orderId}/`, { status });
+};
+
+export const updateOrderItems = async (
+  orderId: string,
+  items: { dishId: string; quantity: number }[]
+): Promise<Order> => {
+  const payload = {
+    items: items.map(item => ({
+      dish: Number(item.dishId),
+      quantity: item.quantity,
+    })),
+  };
+
+  const response = await api.patch(`${API_BASE_URL}/orders/${orderId}/`, payload);
+  return mapOrderFromApi(response.data, []);
+};
+
+export const deleteOrder = async (orderId: string): Promise<void> => {
+  await api.delete(`${API_BASE_URL}/orders/${orderId}/`);
+};
+
+// Customers are still mocked for now.
 
 let initialCustomers: Customer[] = [
   {
@@ -403,91 +349,9 @@ let initialCustomers: Customer[] = [
   },
 ];
 
-// Simulate API latency
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const getTables = async (): Promise<Table[]> => {
-  await sleep(500);
-  return initialTables;
-};
-
-export const getOrders = async (): Promise<Order[]> => {
-  await sleep(500);
-  return initialOrders;
-};
-
-export const getMenuItems = async (): Promise<MenuItem[]> => {
-  await sleep(500);
-  return initialMenuItems;
-};
-
-export const getCategories = async (): Promise<Category[]> => {
-  await sleep(500);
-  return initialCategories;
-};
 
 export const getCustomers = async (): Promise<Customer[]> => {
   await sleep(500);
   return initialCustomers;
-};
-
-export const addTable = async (
-  tableData: Omit<Table, "id" | "createdAt" | "updatedAt">
-): Promise<Table> => {
-  await sleep(500);
-  const newTable: Table = {
-    ...tableData,
-    id: Date.now().toString(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  initialTables = [...initialTables, newTable];
-  return newTable;
-};
-
-export const addOrder = async (
-  orderData: Omit<Order, "id" | "createdAt" | "updatedAt">
-): Promise<Order> => {
-  await sleep(500);
-  const newOrder: Order = {
-    ...orderData,
-    id: Date.now().toString(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  initialOrders = [...initialOrders, newOrder];
-  return newOrder;
-};
-
-export const addMenuItem = async (
-  itemData: Omit<MenuItem, "id" | "createdAt" | "updatedAt">
-): Promise<MenuItem> => {
-  await sleep(500);
-  const newItem: MenuItem = {
-    ...itemData,
-    id: Date.now().toString(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    available: true, // By default
-    preparationTime: 20, // Default value
-  };
-  initialMenuItems = [...initialMenuItems, newItem];
-  return newItem;
-};
-
-export const addCategory = async (
-  categoryData: Omit<Category, "id" | "createdAt" | "updatedAt">
-): Promise<Category> => {
-  await sleep(500);
-  const newCategory: Category = {
-    ...categoryData,
-    id: Date.now().toString(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    emoji: "✨", // Default emoji
-    color: "bg-restaurant-gray", // Default color
-    itemCount: 0,
-  };
-  initialCategories = [...initialCategories, newCategory];
-  return newCategory;
 };

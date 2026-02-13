@@ -1,38 +1,69 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PlusCircle } from 'lucide-react';
 import { Table } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddTableFormProps {
   onAddTable: (table: Omit<Table, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  existingTables?: Table[];
 }
 
-export function AddTableForm({ onAddTable }: AddTableFormProps) {
+export function AddTableForm({ onAddTable, existingTables = [] }: AddTableFormProps) {
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     number: '',
     seats: '',
-    status: 'Available' as Table['status'],
-    customer: '',
-    reservationTime: '',
   });
+  const [numberError, setNumberError] = useState('');
+
+  const existingNumbers = useMemo(
+    () => new Set(existingTables.map(table => table.number)),
+    [existingTables]
+  );
+
+  useEffect(() => {
+    if (!formData.number) {
+      setNumberError('');
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      const value = parseInt(formData.number, 10);
+      if (Number.isNaN(value)) {
+        setNumberError('Please enter a valid table number.');
+        return;
+      }
+      if (existingNumbers.has(value)) {
+        setNumberError(`Table number ${value} already present.`);
+        return;
+      }
+      setNumberError('');
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, [formData.number, existingNumbers]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.number || !formData.seats) {
       return;
     }
 
+    const tableNumber = parseInt(formData.number, 10);
+    if (Number.isNaN(tableNumber) || numberError) {
+      return;
+    }
+
     const tableData: Omit<Table, 'id' | 'createdAt' | 'updatedAt'> = {
-      number: parseInt(formData.number),
-      seats: parseInt(formData.seats),
-      status: formData.status,
-      customer: formData.customer || undefined,
-      reservationTime: formData.reservationTime || undefined,
+      number: tableNumber,
+      seats: parseInt(formData.seats, 10),
+      status: 'Available',
     };
 
     onAddTable(tableData);
@@ -40,9 +71,6 @@ export function AddTableForm({ onAddTable }: AddTableFormProps) {
     setFormData({
       number: '',
       seats: '',
-      status: 'Available',
-      customer: '',
-      reservationTime: '',
     });
   };
 
@@ -50,7 +78,7 @@ export function AddTableForm({ onAddTable }: AddTableFormProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="border-border">
-          Add Table ⬇
+          <PlusCircle className="h-4 w-4 mr-2" />Add Table
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
@@ -69,8 +97,11 @@ export function AddTableForm({ onAddTable }: AddTableFormProps) {
               className="bg-card border-border text-foreground"
               required
             />
+            {numberError && (
+              <p className="text-xs text-restaurant-red">{numberError}</p>
+            )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="seats" className="text-foreground">Number of Seats</Label>
             <Input
@@ -83,59 +114,21 @@ export function AddTableForm({ onAddTable }: AddTableFormProps) {
               required
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="status" className="text-foreground">Status</Label>
-            <Select value={formData.status} onValueChange={(value: Table['status']) => 
-              setFormData(prev => ({ ...prev, status: value }))
-            }>
-              <SelectTrigger className="bg-card border-border text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="Available">Available</SelectItem>
-                <SelectItem value="Booked">Booked</SelectItem>
-                <SelectItem value="Occupied">Occupied</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {formData.status === 'Booked' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="customer" className="text-foreground">Customer Name</Label>
-                <Input
-                  id="customer"
-                  placeholder="Enter customer name"
-                  value={formData.customer}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer: e.target.value }))}
-                  className="bg-card border-border text-foreground"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="reservationTime" className="text-foreground">Reservation Time</Label>
-                <Input
-                  id="reservationTime"
-                  type="time"
-                  value={formData.reservationTime}
-                  onChange={(e) => setFormData(prev => ({ ...prev, reservationTime: e.target.value }))}
-                  className="bg-card border-border text-foreground"
-                />
-              </div>
-            </>
-          )}
-          
+
           <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setOpen(false)}
               className="border-border"
             >
               Cancel
             </Button>
-            <Button type="submit" className="bg-restaurant-blue hover:bg-restaurant-blue/90">
+            <Button
+              type="submit"
+              className="bg-restaurant-blue hover:bg-restaurant-blue/90"
+              disabled={Boolean(numberError)}
+            >
               Add Table
             </Button>
           </div>

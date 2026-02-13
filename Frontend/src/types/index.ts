@@ -14,12 +14,13 @@ export interface Order {
   customerName: string;
   customerInitials: string;
   tableNumber: number;
+  tableId?: string;
   items: OrderItem[];
   status: "Pending" | "In Progress" | "Ready" | "Completed" | "Cancelled";
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
-  orderType: "Dine In" | "Takeaway" | "Delivery";
+  orderType: "Dine In" | "Takeaway";
 }
 
 export interface OrderItem {
@@ -28,6 +29,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
   category: string;
+  dishId?: string;
   notes?: string;
 }
 
@@ -36,10 +38,12 @@ export interface MenuItem {
   name: string;
   price: number;
   category: string;
+  categoryId?: number;
   description?: string;
   image?: string;
   available: boolean;
   preparationTime: number;
+  isVeg?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,11 +51,11 @@ export interface MenuItem {
 export interface Category {
   id: string;
   name: string;
-  emoji: string;
-  color: string;
-  itemCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  emoji?: string;
+  color?: string;
+  itemCount?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Customer {

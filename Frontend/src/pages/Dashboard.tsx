@@ -169,7 +169,7 @@ export default function Dashboard() {
 
       {/* Action Buttons */}
       <div className="flex gap-4 flex-wrap">
-        <AddTableForm onAddTable={addTable} />
+        <AddTableForm onAddTable={addTable} existingTables={tables} />
         <AddCategoryForm onAddCategory={addCategory} />
         <AddDishForm onAddDish={addMenuItem} categories={categories} />
         <div className="ml-auto flex gap-2">
