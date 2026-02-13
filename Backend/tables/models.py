@@ -15,3 +15,9 @@ class Table(models.Model):
 
     def __str__(self):
         return self.table_number
+
+    def save(self, *args, **kwargs):
+        if self.status == 'Available':
+            self.customer_name = None
+            self.booking_time = None
+        super().save(*args, **kwargs)

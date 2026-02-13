@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Minus, ShoppingCart, Search } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ const categoryPalette = [
   { color: "bg-restaurant-brown" },
   { color: "bg-restaurant-green" },
   { color: "bg-restaurant-orange" },
+  { color: "bg-restaurant-purple" },
+  { color: "bg-restaurant-blue" },
 ];
 
 const VegIcon = () => (
@@ -48,7 +50,6 @@ export default function Menu() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedTableId, setSelectedTableId] = useState("");
-  const [customerName, setCustomerName] = useState('');
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCategory) {
@@ -66,18 +67,51 @@ export default function Menu() {
     return categories.map((category, index) => {
       const palette = categoryPalette[index % categoryPalette.length];
       const count = menuItems.filter(item => item.category === category.name).length;
+      const nameKey = category.name.toLowerCase();
+      const emojiByName: Record<string, string> = {
+        starters: "🥟",
+        main_course: "🍽️",
+        soups: "🍜",
+        rice_and_biryani: "🍚",
+        breads: "🥖",
+        chinese: "🥢",
+        fast_food: "🍔",
+        beverages: "🥤",
+        desserts: "🍰",
+        salads: "🥗",
+        pizzas: "🍕",
+      };
+      const normalizedKey = nameKey
+        .replace(/&/g, "and")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\s+/g, "_");
       return {
         ...category,
         label: getCategoryLabel(category.name),
         color: category.color || palette.color,
+        emoji:
+          category.emoji ||
+          emojiByName[normalizedKey] ||
+          emojiByName[normalizedKey + "s"] ||
+          "🍽️",
         itemCount: category.itemCount ?? count,
       };
     });
   }, [categories, menuItems]);
 
+  const sortedTables = useMemo(
+    () => [...tables].sort((a, b) => a.number - b.number),
+    [tables]
+  );
+
   const itemsForCategory = useMemo(() => {
+    if (searchTerm.trim()) {
+      const needle = searchTerm.toLowerCase();
+      return menuItems.filter(item => item.name.toLowerCase().includes(needle));
+    }
     return menuItems.filter(item => item.category === selectedCategory);
-  }, [menuItems, selectedCategory]);
+  }, [menuItems, selectedCategory, searchTerm]);
 
   const vegItems = itemsForCategory
     .filter(item => item.isVeg !== false)
@@ -124,11 +158,8 @@ export default function Menu() {
     }));
 
     addOrder({
-      customerName: customerName || 'Walk-in',
-      customerInitials: (customerName || 'Walk-in')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase())
-        .join(''),
+      customerName: 'Walk-in',
+      customerInitials: 'WI',
       tableNumber: selectedTable ? selectedTable.number : 0,
       tableId: selectedTableId,
       orderType: 'Dine In',
@@ -138,7 +169,6 @@ export default function Menu() {
     });
 
     setQuantities(prev => ({ ...prev, [selectedTableId]: {} }));
-    setCustomerName('');
   };
 
   if (loading) {
@@ -170,7 +200,7 @@ export default function Menu() {
                   <SelectValue placeholder={tables.length === 0 ? "No tables" : "Select Table"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {tables.map(table => (
+                  {sortedTables.map(table => (
                     <SelectItem key={table.id} value={table.id}>
                       Table {table.number}
                     </SelectItem>
@@ -183,7 +213,7 @@ export default function Menu() {
           <div className="relative mb-8">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={selectedCategory ? `Search in ${selectedCategory}...` : "Search menu..."}
+              placeholder="Search all dishes..."
               className="pl-10 bg-card border-border"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -198,7 +228,7 @@ export default function Menu() {
                 onClick={() => setSelectedCategory(category.name)}
               >
                 <CardContent className="p-4 text-center">
-                  <div className="text-sm mb-2 text-white/90 font-semibold">{category.label}</div>
+                  <div className="text-2xl mb-1">{category.emoji}</div>
                   <div className="text-white font-semibold text-sm mb-1">{category.name}</div>
                   <div className="text-white/80 text-xs">{category.itemCount || 0} Items</div>
                 </CardContent>
@@ -225,10 +255,7 @@ export default function Menu() {
                           {item.description && (
                             <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
                           )}
-                          <div className="flex items-center justify-between">
-                            <div className="text-xl font-bold text-foreground">Rs. {item.price}</div>
-                            <div className="text-xs text-muted-foreground">Prep 20m</div>
-                          </div>
+                          <div className="text-xl font-bold text-foreground">Rs. {item.price}</div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -252,9 +279,6 @@ export default function Menu() {
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
-                          <Button size="sm" className="bg-restaurant-green hover:bg-restaurant-green/90">
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -281,10 +305,7 @@ export default function Menu() {
                           {item.description && (
                             <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
                           )}
-                          <div className="flex items-center justify-between">
-                            <div className="text-xl font-bold text-foreground">Rs. {item.price}</div>
-                            <div className="text-xs text-muted-foreground">Prep 20m</div>
-                          </div>
+                          <div className="text-xl font-bold text-foreground">Rs. {item.price}</div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -308,9 +329,6 @@ export default function Menu() {
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
-                          <Button size="sm" className="bg-restaurant-green hover:bg-restaurant-green/90">
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -328,37 +346,14 @@ export default function Menu() {
         <div className="lg:col-span-1">
           <Card className="bg-card border-border sticky top-4">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-semibold">
-                    ORD
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">Customer</div>
-                    <div className="text-sm text-muted-foreground">
-                      Table No: {selectedTable ? selectedTable.number : '-'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{new Date().toLocaleString()}</div>
-                  </div>
-                </div>
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
-                  {customerName ? customerName.split(' ').map(w => w[0]).join('') : 'CN'}
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <Input
-                  placeholder="Customer name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="bg-card border-border"
-                />
-              </div>
-
               <div className="mb-6">
-                <h3 className="font-semibold text-foreground mb-4">Order Details</h3>
+                <h3 className="font-semibold text-foreground">Order Details</h3>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Table No: {selectedTable ? selectedTable.number : '-'}
+                </div>
+                <div className="border-t border-border mt-3"></div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4">
                   {currentOrderItems.map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -389,9 +384,6 @@ export default function Menu() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 text-restaurant-blue border-restaurant-blue">
-                  Print Receipt
-                </Button>
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
                   onClick={handlePlaceOrder}
