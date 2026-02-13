@@ -78,7 +78,7 @@ export function AddTableForm({ onAddTable, existingTables = [] }: AddTableFormPr
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="border-border">
-          <PlusCircle className="h-4 w-4 mr-2" />Add Table
+          Add Table <PlusCircle className="h-4 w-4 mr-2" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">

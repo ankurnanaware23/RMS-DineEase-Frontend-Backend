@@ -44,7 +44,7 @@ export function AddDishForm({ onAddDish, categories }: AddDishFormProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="border-border">
-          Add Dishes ??
+          Add Dish 🍽️
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
