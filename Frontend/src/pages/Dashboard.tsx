@@ -84,24 +84,54 @@ export default function Dashboard() {
 
   const todayCompletedCount = todayOrders.filter(order => order.status === 'Completed').length;
 
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(todayStart.getDate() - 1);
+  const yesterdayEnd = new Date(todayEnd);
+  yesterdayEnd.setDate(todayEnd.getDate() - 1);
+
+  const yesterdayOrders = orders.filter(order => {
+    const createdAt = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+    return !Number.isNaN(createdAt.getTime()) && createdAt >= yesterdayStart && createdAt <= yesterdayEnd;
+  });
+
+  const yesterdayCompletedEarnings = yesterdayOrders
+    .filter(order => order.status === 'Completed')
+    .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+
+  const yesterdayOngoingAmount = yesterdayOrders
+    .filter(order => order.status !== 'Completed' && order.status !== 'Cancelled')
+    .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+
+  const getChange = (todayValue: number, yesterdayValue: number) => {
+    if (yesterdayValue === 0) {
+      return { text: todayValue > 0 ? "100%" : "0%", type: todayValue > 0 ? "increase" : "decrease" };
+    }
+    const diff = ((todayValue - yesterdayValue) / yesterdayValue) * 100;
+    const rounded = Math.abs(diff).toFixed(1);
+    return { text: `${rounded}%`, type: diff >= 0 ? "increase" : "decrease" };
+  };
+
+  const earningChange = getChange(todayCompletedEarnings, yesterdayCompletedEarnings);
+  const completedCountChange = getChange(todayCompletedCount, yesterdayOrders.filter(order => order.status === 'Completed').length);
+
   const metrics = [
     {
       title: "Today's Earning",
       value: todayCompletedEarnings.toFixed(2),
-      change: "1.6%",
-      changeType: "increase",
+      change: earningChange.text,
+      changeType: earningChange.type,
       icon: DollarSign,
       color: "bg-restaurant-green",
       isCurrency: true,
+      showChange: true,
     },
     {
       title: "In Progress",
       value: todayOngoingAmount.toFixed(2),
-      change: "3.6%",
-      changeType: "increase",
       icon: Clock,
       color: "bg-restaurant-orange",
       isCurrency: true,
+      showChange: false,
     },
   ];
 
@@ -109,25 +139,21 @@ export default function Dashboard() {
     {
       title: "Total Categories",
       value: stats.totalCategories.toString(),
-      change: "12%",
       color: "bg-restaurant-purple",
     },
     {
       title: "Total Dishes",
       value: stats.totalDishes.toString(),
-      change: "12%",
       color: "bg-restaurant-green",
     },
     {
       title: "Active Orders",
       value: stats.activeOrders.toString(),
-      change: "12%",
       color: "bg-restaurant-brown",
     },
     {
       title: "Total Tables",
       value: stats.totalTables.toString(),
-      change: "",
       color: "bg-restaurant-purple",
     },
   ];
@@ -263,16 +289,18 @@ export default function Dashboard() {
                     <p className="text-2xl font-bold text-foreground">
                       {metric.isCurrency ? `₹${metric.value}` : metric.value}
                     </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      {metric.changeType === "increase" ? (
-                        <TrendingUp className="h-3 w-3 text-restaurant-green" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 text-restaurant-red" />
-                      )}
-                      <span className={`text-xs ${metric.changeType === "increase" ? "text-restaurant-green" : "text-restaurant-red"}`}>
-                        {metric.change} than yesterday
-                      </span>
-                    </div>
+                    {metric.showChange && (
+                      <div className="flex items-center gap-1 mt-1">
+                        {metric.changeType === "increase" ? (
+                          <TrendingUp className="h-3 w-3 text-restaurant-green" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3 text-restaurant-red" />
+                        )}
+                        <span className={`text-xs ${metric.changeType === "increase" ? "text-restaurant-green" : "text-restaurant-red"}`}>
+                          {metric.change} than yesterday
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className={`w-12 h-12 ${metric.color} rounded-lg flex items-center justify-center`}>
                     <metric.icon className="h-6 w-6 text-white" />
@@ -290,8 +318,14 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Today's Completed Orders</p>
                   <p className="text-2xl font-bold text-foreground">{todayCompletedCount}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-restaurant-green" />
-                    <span className="text-xs text-restaurant-green">10% than yesterday</span>
+                    {completedCountChange.type === "increase" ? (
+                      <TrendingUp className="h-3 w-3 text-restaurant-green" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3 text-restaurant-red" />
+                    )}
+                    <span className={`text-xs ${completedCountChange.type === "increase" ? "text-restaurant-green" : "text-restaurant-red"}`}>
+                      {completedCountChange.text} than yesterday
+                    </span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-restaurant-orange rounded-lg flex items-center justify-center">
@@ -318,12 +352,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm text-muted-foreground">{item.title}</p>
                     <p className="text-2xl font-bold text-foreground">{item.value}</p>
-                    {item.change && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <TrendingUp className="h-3 w-3 text-restaurant-green" />
-                        <span className="text-xs text-restaurant-green">{item.change}</span>
-                      </div>
-                    )}
+                    
                   </div>
                 </div>
               </CardContent>

@@ -69,7 +69,7 @@ export default function AllOrders() {
           to="/orders?tab=all"
           className="text-sm text-restaurant-blue hover:underline"
         >
-          View in Orders
+          View detailed Orders
         </Link>
       </div>
       <div className="flex flex-wrap lg:flex-nowrap items-end gap-3">
