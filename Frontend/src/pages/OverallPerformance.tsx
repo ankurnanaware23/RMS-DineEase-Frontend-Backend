@@ -1,11 +1,34 @@
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useRestaurantData } from "@/hooks/useRestaurantData";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export default function OverallPerformance() {
   const { stats, orders, loading } = useRestaurantData();
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const range = useMemo(() => {
+    const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
+    const end = endDate ? new Date(`${endDate}T23:59:59`) : null;
+    return { start, end };
+  }, [startDate, endDate]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const createdAt = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+      if (Number.isNaN(createdAt.getTime())) return false;
+      if (range.start && createdAt < range.start) return false;
+      if (range.end && createdAt > range.end) return false;
+      return true;
+    });
+  }, [orders, range]);
+
+  const completedOrders = filteredOrders.filter(order => order.status === "Completed");
+  const ongoingOrders = filteredOrders.filter(order => order.status !== "Completed" && order.status !== "Cancelled");
+  const cancelledOrders = filteredOrders.filter(order => order.status === "Cancelled");
+
+  const completedRevenue = completedOrders.reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
 
   if (loading || !stats) {
     return <div>Loading...</div>;
@@ -13,42 +36,34 @@ export default function OverallPerformance() {
 
   const metrics = [
     {
-      title: "Revenue",
-      value: `₹${stats.totalEarnings.toFixed(2)}`,
-      change: "12%",
-      changeType: "decrease",
+      title: "Total Revenue",
+      value: `₹${completedRevenue.toFixed(2)}`,
       color: "bg-blue-600",
     },
     {
-      title: "Outbound Clicks",
-      value: "10,342",
-      change: "16%",
-      changeType: "increase",
+      title: "Completed Orders",
+      value: completedOrders.length.toString(),
       color: "bg-green-500",
     },
     {
-      title: "Total Customer",
-      value: stats.totalCustomers.toString(),
-      change: "10%",
-      changeType: "increase",
+      title: "Ongoing Orders",
+      value: ongoingOrders.length.toString(),
       color: "bg-yellow-500",
     },
     {
-      title: "Event Count",
-      value: stats.eventCount.toString(),
-      change: "10%",
-      changeType: "decrease",
+      title: "Cancelled Orders",
+      value: cancelledOrders.length.toString(),
       color: "bg-red-500",
     },
   ];
 
-  const salesData = orders.reduce((acc, order) => {
-    const date = new Date(order.createdAt).toLocaleDateString();
+  const salesData = completedOrders.reduce((acc, order) => {
+    const date = new Date(order.createdAt).toLocaleDateString("en-GB");
     const existingEntry = acc.find(entry => entry.date === date);
     if (existingEntry) {
-      existingEntry.sales += order.totalAmount;
+      existingEntry.sales += Number(order.totalAmount) || 0;
     } else {
-      acc.push({ date, sales: order.totalAmount });
+      acc.push({ date, sales: Number(order.totalAmount) || 0 });
     }
     return acc;
   }, [] as { date: string; sales: number }[]);
@@ -57,12 +72,31 @@ export default function OverallPerformance() {
     <div className="p-4 space-y-8 max-w-7xl mx-auto">
       {/* Overall Performance Section */}
       <div>
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
             <h2 className="text-xl font-semibold text-foreground">Overall Performance</h2>
             <p className="text-sm text-muted-foreground">A summary of your restaurant's overall performance.</p>
           </div>
-          <Button variant="outline" size="sm">Last 1 Month ⌄</Button>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1 min-w-[200px]">
+              <div className="text-xs text-muted-foreground">Start Date</div>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-card border-border"
+              />
+            </div>
+            <div className="space-y-1 min-w-[200px]">
+              <div className="text-xs text-muted-foreground">End Date</div>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-card border-border"
+              />
+            </div>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {metrics.map((metric, index) => (
@@ -72,14 +106,6 @@ export default function OverallPerformance() {
                   <div>
                     <p className="text-sm">{metric.title}</p>
                     <p className="text-3xl font-bold">{metric.value}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm font-semibold">
-                    {metric.changeType === "increase" ? (
-                      <TrendingUp className="h-4 w-4" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4" />
-                    )}
-                    <span>{metric.change}</span>
                   </div>
                 </div>
               </CardContent>
