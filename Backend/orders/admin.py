@@ -14,6 +14,19 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ('customer_name',)
     inlines = [OrderItemInline]
 
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status in ('Completed', 'Cancelled'):
+            return False
+        return super().has_change_permission(request, obj=obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status in ('Completed', 'Cancelled'):
+            return [field.name for field in obj._meta.fields]
+        return super().get_readonly_fields(request, obj=obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 class OrderStatusFilter(admin.SimpleListFilter):
     title = 'Order Status'
@@ -43,3 +56,12 @@ class EarningAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', 'date', 'completed_at', 'amount')
     list_filter = ('date',)
     search_fields = ('order__id',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

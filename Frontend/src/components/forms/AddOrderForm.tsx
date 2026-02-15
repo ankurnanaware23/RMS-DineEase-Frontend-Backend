@@ -264,7 +264,7 @@ export function AddOrderForm({ onAddOrder, menuItems, tables }: AddOrderFormProp
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-foreground">
-                  Total: ?{totalAmount}
+                  Total: Rs. {totalAmount}
                 </div>
               </div>
             </div>

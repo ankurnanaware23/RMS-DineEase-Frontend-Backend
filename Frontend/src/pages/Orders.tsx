@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, CheckCircle, XCircle, Trash2, Search } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, XCircle, Search } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRestaurantData } from '@/hooks/useRestaurantData';
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ export default function Orders() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [editingItems, setEditingItems] = useState<{ dishId: string; name: string; quantity: number; }[]>([]);
   const [selectedMenuItem, setSelectedMenuItem] = useState('');
+  const [isEditingReadOnly, setIsEditingReadOnly] = useState(false);
 
 
   const orderStatuses = [
@@ -138,6 +139,7 @@ export default function Orders() {
 
   const handleOpenEdit = (order: Order) => {
     setEditingOrderId(order.id);
+    setIsEditingReadOnly(order.status === 'Completed' || order.status === 'Cancelled');
     setEditingItems(order.items.map(item => ({
       dishId: item.dishId || item.id,
       name: item.name,
@@ -147,6 +149,7 @@ export default function Orders() {
   };
 
   const handleAddItem = () => {
+    if (isEditingReadOnly) return;
     if (!selectedMenuItem) return;
     const menuItem = menuItems.find(item => item.id === selectedMenuItem);
     if (!menuItem) return;
@@ -162,6 +165,7 @@ export default function Orders() {
   };
 
   const handleUpdateQuantity = (dishId: string, delta: number) => {
+    if (isEditingReadOnly) return;
     setEditingItems(prev => prev
       .map(item => item.dishId === dishId ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item)
       .filter(item => item.quantity > 0)
@@ -169,6 +173,12 @@ export default function Orders() {
   };
 
   const handleSaveItems = async () => {
+    if (isEditingReadOnly) {
+      setIsEditOpen(false);
+      setEditingOrderId(null);
+      setEditingItems([]);
+      return;
+    }
     if (!editingOrderId) return;
     await updateOrderItems(editingOrderId, editingItems.map(item => ({ dishId: item.dishId, quantity: item.quantity })));
     setIsEditOpen(false);
@@ -353,7 +363,7 @@ export default function Orders() {
                       className="flex-1"
                       onClick={() => handleOpenEdit(order)}
                     >
-                      View / Edit
+                      {order.status === 'Completed' || order.status === 'Cancelled' ? 'View Ordered Items' : 'View / Edit'}
                     </Button>
                     {order.status !== 'Completed' && order.status !== 'Cancelled' && (
                       <Button
@@ -365,15 +375,6 @@ export default function Orders() {
                         Cancel
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleDelete(order.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
                   </div>
 
                   {order.status !== 'Completed' && order.status !== 'Cancelled' && (
@@ -404,21 +405,23 @@ export default function Orders() {
             <DialogTitle>Order Items</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex gap-2">
-              <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select menu item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {menuItems.map(item => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button type="button" onClick={handleAddItem} disabled={!selectedMenuItem}>Add</Button>
-            </div>
+            {!isEditingReadOnly && (
+              <div className="flex gap-2">
+                <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select menu item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {menuItems.map(item => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" onClick={handleAddItem} disabled={!selectedMenuItem}>Add</Button>
+              </div>
+            )}
 
             <div className="space-y-2">
               {editingItems.length === 0 && (
@@ -428,9 +431,15 @@ export default function Orders() {
                 <div key={item.dishId} className="flex items-center justify-between border border-border rounded-md px-3 py-2">
                   <div className="text-sm font-medium">{item.name}</div>
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateQuantity(item.dishId, -1)}>-</Button>
-                    <span className="w-6 text-center">{item.quantity}</span>
-                    <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateQuantity(item.dishId, 1)}>+</Button>
+                    {isEditingReadOnly ? (
+                      <span className="text-sm text-muted-foreground">x{item.quantity}</span>
+                    ) : (
+                      <>
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateQuantity(item.dishId, -1)}>-</Button>
+                        <span className="w-6 text-center">{item.quantity}</span>
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateQuantity(item.dishId, 1)}>+</Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -438,7 +447,9 @@ export default function Orders() {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={handleSaveItems}>Save Changes</Button>
+            {!isEditingReadOnly && (
+              <Button type="button" onClick={handleSaveItems}>Save Changes</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
