@@ -13,6 +13,7 @@ class UserAdmin(admin.ModelAdmin):
     )
     search_fields = ('email', 'first_name', 'last_name')
     list_filter = ('is_staff', 'is_active')
+    exclude = ('otp', 'refresh_token')
 
 
 @admin.register(Profile)

@@ -16,6 +16,7 @@ export default function Dashboard() {
   const {
     tables,
     orders,
+    earnings,
     menuItems,
     categories,
     stats,
@@ -74,29 +75,35 @@ export default function Dashboard() {
     return !Number.isNaN(createdAt.getTime()) && createdAt >= todayStart && createdAt <= todayEnd;
   });
 
-  const todayCompletedEarnings = todayOrders
-    .filter(order => order.status === 'Completed')
-    .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+  const todayEarnings = earnings.filter(item => {
+    const completedAt = item.completedAt instanceof Date ? item.completedAt : item.completedAt ? new Date(item.completedAt) : null;
+    return completedAt && completedAt >= todayStart && completedAt <= todayEnd;
+  });
+
+  const todayCompletedEarnings = todayEarnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   const todayOngoingAmount = todayOrders
     .filter(order => order.status !== 'Completed' && order.status !== 'Cancelled')
     .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
 
-  const todayCompletedCount = todayOrders.filter(order => order.status === 'Completed').length;
+  const todayCompletedCount = todayEarnings.length;
 
   const yesterdayStart = new Date(todayStart);
   yesterdayStart.setDate(todayStart.getDate() - 1);
   const yesterdayEnd = new Date(todayEnd);
   yesterdayEnd.setDate(todayEnd.getDate() - 1);
 
+  const yesterdayEarnings = earnings.filter(item => {
+    const completedAt = item.completedAt instanceof Date ? item.completedAt : item.completedAt ? new Date(item.completedAt) : null;
+    return completedAt && completedAt >= yesterdayStart && completedAt <= yesterdayEnd;
+  });
+
   const yesterdayOrders = orders.filter(order => {
     const createdAt = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
     return !Number.isNaN(createdAt.getTime()) && createdAt >= yesterdayStart && createdAt <= yesterdayEnd;
   });
 
-  const yesterdayCompletedEarnings = yesterdayOrders
-    .filter(order => order.status === 'Completed')
-    .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+  const yesterdayCompletedEarnings = yesterdayEarnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   const yesterdayOngoingAmount = yesterdayOrders
     .filter(order => order.status !== 'Completed' && order.status !== 'Cancelled')
@@ -112,7 +119,7 @@ export default function Dashboard() {
   };
 
   const earningChange = getChange(todayCompletedEarnings, yesterdayCompletedEarnings);
-  const completedCountChange = getChange(todayCompletedCount, yesterdayOrders.filter(order => order.status === 'Completed').length);
+  const completedCountChange = getChange(todayCompletedCount, yesterdayEarnings.length);
 
   const metrics = [
     {

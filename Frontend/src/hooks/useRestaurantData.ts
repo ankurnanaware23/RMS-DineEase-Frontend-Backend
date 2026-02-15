@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Table, Order, MenuItem, Category, Customer, RestaurantStats } from '@/types';
+import { Table, Order, MenuItem, Category, Customer, RestaurantStats, Earning } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import * as api from '@/lib/api';
 
@@ -9,6 +9,7 @@ export function useRestaurantData() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [earnings, setEarnings] = useState<Earning[]>([]);
   const [stats, setStats] = useState<RestaurantStats | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -18,11 +19,12 @@ export function useRestaurantData() {
       setLoading(true);
 
       const tablesData = await api.getTables();
-      const [ordersData, menuItemsData, categoriesData, customersData] = await Promise.all([
+      const [ordersData, menuItemsData, categoriesData, customersData, earningsData] = await Promise.all([
         api.getOrders(tablesData),
         api.getMenuItems(),
         api.getCategories(),
         api.getCustomers(),
+        api.getEarnings(),
       ]);
 
       const categoryMap = new Map(
@@ -64,6 +66,7 @@ export function useRestaurantData() {
       setMenuItems(menuItemsWithCategory);
       setCategories(categoriesWithCounts);
       setCustomers(customersData);
+      setEarnings(earningsData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -83,7 +86,7 @@ export function useRestaurantData() {
   useEffect(() => {
     if (!loading) {
       const calculatedStats: RestaurantStats = {
-        totalEarnings: orders.reduce((sum, order) => sum + order.totalAmount, 0),
+        totalEarnings: earnings.reduce((sum, item) => sum + item.amount, 0),
         inProgressOrders: orders.filter(order => order.status === 'In Progress').length,
         totalCustomers: customers.length,
         eventCount: 20000,
@@ -94,7 +97,7 @@ export function useRestaurantData() {
       };
       setStats(calculatedStats);
     }
-  }, [loading, orders, customers, categories, menuItems, tables]);
+  }, [loading, orders, customers, categories, menuItems, tables, earnings]);
 
   const addTable = useCallback(async (tableData: Omit<Table, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -315,6 +318,7 @@ export function useRestaurantData() {
     menuItems,
     categories,
     customers,
+    earnings,
     stats,
     loading,
     addTable,

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Order, OrderItem, Earning
 
 
@@ -30,9 +31,20 @@ class OrderSerializer(serializers.ModelSerializer):
             OrderItem.objects.create(order=order, **item_data, price=price)
         order.total_amount = total_amount
         order.save()
+
+        if order.status == 'Completed':
+            Earning.objects.update_or_create(
+                order=order,
+                defaults={
+                    'date': timezone.localdate(),
+                    'completed_at': timezone.now(),
+                    'amount': order.total_amount,
+                }
+            )
         return order
 
     def update(self, instance, validated_data):
+        previous_status = instance.status
         items_data = validated_data.pop('items', None)
 
         # Update order fields
@@ -54,6 +66,20 @@ class OrderSerializer(serializers.ModelSerializer):
 
         instance.total_amount = total_amount
         instance.save()
+
+        new_status = instance.status
+        if new_status == 'Completed':
+            Earning.objects.update_or_create(
+                order=instance,
+                defaults={
+                    'date': timezone.localdate(),
+                    'completed_at': timezone.now(),
+                    'amount': instance.total_amount,
+                }
+            )
+        elif previous_status == 'Completed' and new_status != 'Completed':
+            Earning.objects.filter(order=instance).delete()
+
         return instance
 
 

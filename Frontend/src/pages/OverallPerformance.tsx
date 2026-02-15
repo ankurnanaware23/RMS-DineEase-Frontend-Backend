@@ -5,7 +5,7 @@ import { useRestaurantData } from "@/hooks/useRestaurantData";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export default function OverallPerformance() {
-  const { stats, orders, loading } = useRestaurantData();
+  const { stats, orders, earnings, loading } = useRestaurantData();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const range = useMemo(() => {
@@ -24,11 +24,20 @@ export default function OverallPerformance() {
     });
   }, [orders, range]);
 
-  const completedOrders = filteredOrders.filter(order => order.status === "Completed");
+  const filteredEarnings = useMemo(() => {
+    return earnings.filter(item => {
+      const completedAt = item.completedAt instanceof Date ? item.completedAt : item.completedAt ? new Date(item.completedAt) : null;
+      if (!completedAt || Number.isNaN(completedAt.getTime())) return false;
+      if (range.start && completedAt < range.start) return false;
+      if (range.end && completedAt > range.end) return false;
+      return true;
+    });
+  }, [earnings, range]);
+
   const ongoingOrders = filteredOrders.filter(order => order.status !== "Completed" && order.status !== "Cancelled");
   const cancelledOrders = filteredOrders.filter(order => order.status === "Cancelled");
 
-  const completedRevenue = completedOrders.reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+  const completedRevenue = filteredEarnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   if (loading || !stats) {
     return <div>Loading...</div>;
@@ -42,7 +51,7 @@ export default function OverallPerformance() {
     },
     {
       title: "Completed Orders",
-      value: completedOrders.length.toString(),
+      value: filteredEarnings.length.toString(),
       color: "bg-green-500",
     },
     {
@@ -57,13 +66,15 @@ export default function OverallPerformance() {
     },
   ];
 
-  const salesData = completedOrders.reduce((acc, order) => {
-    const date = new Date(order.createdAt).toLocaleDateString("en-GB");
+  const salesData = filteredEarnings.reduce((acc, item) => {
+    const completedAt = item.completedAt instanceof Date ? item.completedAt : item.completedAt ? new Date(item.completedAt) : null;
+    if (!completedAt) return acc;
+    const date = completedAt.toLocaleDateString("en-GB");
     const existingEntry = acc.find(entry => entry.date === date);
     if (existingEntry) {
-      existingEntry.sales += Number(order.totalAmount) || 0;
+      existingEntry.sales += Number(item.amount) || 0;
     } else {
-      acc.push({ date, sales: Number(order.totalAmount) || 0 });
+      acc.push({ date, sales: Number(item.amount) || 0 });
     }
     return acc;
   }, [] as { date: string; sales: number }[]);

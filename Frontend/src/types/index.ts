@@ -78,3 +78,11 @@ export interface RestaurantStats {
   activeOrders: number;
   totalTables: number;
 }
+
+export interface Earning {
+  id: string;
+  orderId?: string;
+  date?: string;
+  completedAt?: Date;
+  amount: number;
+}

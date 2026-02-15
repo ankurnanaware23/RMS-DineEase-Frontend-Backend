@@ -37,7 +37,9 @@ class OrderItem(models.Model):
 
 
 class Earning(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='earning', null=True, blank=True)
     date = models.DateField()
+    completed_at = models.DateTimeField(null=True, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):

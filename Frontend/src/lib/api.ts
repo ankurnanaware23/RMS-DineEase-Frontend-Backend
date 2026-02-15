@@ -1,4 +1,4 @@
-import { Table, Order, MenuItem, Category, Customer } from "@/types";
+import { Table, Order, MenuItem, Category, Customer, Earning } from "@/types";
 
 import axios from "axios";
 
@@ -98,6 +98,14 @@ type OrderApi = {
   items: OrderItemApi[];
 };
 
+type EarningApi = {
+  id: number;
+  order?: number | null;
+  date?: string | null;
+  completed_at?: string | null;
+  amount: string | number;
+};
+
 const toTimeString = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -192,6 +200,14 @@ const mapOrderFromApi = (order: OrderApi, tables: Table[]): Order => {
   };
 };
 
+const mapEarningFromApi = (earning: EarningApi): Earning => ({
+  id: String(earning.id),
+  orderId: earning.order ? String(earning.order) : undefined,
+  date: earning.date || undefined,
+  completedAt: earning.completed_at ? new Date(earning.completed_at) : undefined,
+  amount: Number(earning.amount),
+});
+
 export const getTables = async (): Promise<Table[]> => {
   const response = await api.get(`${API_BASE_URL}/tables/`);
   return response.data.map(mapTableFromApi);
@@ -273,6 +289,11 @@ export const addCategory = async (
 export const getOrders = async (tables: Table[]): Promise<Order[]> => {
   const response = await api.get(`${API_BASE_URL}/orders/`);
   return response.data.map((order: OrderApi) => mapOrderFromApi(order, tables));
+};
+
+export const getEarnings = async (): Promise<Earning[]> => {
+  const response = await api.get(`${API_BASE_URL}/earnings/`);
+  return response.data.map(mapEarningFromApi);
 };
 
 export const addOrder = async (
