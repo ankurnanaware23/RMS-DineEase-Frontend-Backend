@@ -27,9 +27,11 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email.",
   }),
-  phone: z.string().min(10, {
-    message: "Phone number must be at least 10 digits.",
-  }),
+  phone: z
+    .string()
+    .regex(/^\d{10}$/, {
+      message: "Phone number must be exactly 10 digits.",
+    }),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -194,7 +196,17 @@ export default function Profile() {
                   <FormItem>
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your phone number" {...field} />
+                      <Input
+                        placeholder="Your phone number"
+                        inputMode="numeric"
+                        pattern="\d*"
+                        maxLength={10}
+                        {...field}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+                          field.onChange(digitsOnly);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

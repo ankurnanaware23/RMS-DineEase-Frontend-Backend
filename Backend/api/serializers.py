@@ -56,6 +56,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
+        token['is_staff'] = user.is_staff
+        token['is_superuser'] = user.is_superuser
 
         return token
 
@@ -114,6 +116,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['email'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
+            is_staff=False,
+            is_superuser=False,
         )
 
         user.set_password(password)

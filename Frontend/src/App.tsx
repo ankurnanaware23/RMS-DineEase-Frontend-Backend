@@ -13,11 +13,18 @@ import Profile from "@/pages/Profile";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import PrivateRoute from "./components/PrivateRoute";
+import AdminRoute from "./components/AdminRoute";
+import { useAuth } from "@/hooks/useAuth";
 import PublicRoute from "./components/PublicRoute";
 import { Toaster } from "sonner";
 import ForgotPasswordNew from "./pages/ForgetPasswordNew";
 
 
+
+const HomeRedirect = () => {
+  const { isAdmin } = useAuth();
+  return <Navigate to={isAdmin ? "/dashboard" : "/menu"} replace />;
+};
 
 export default function App() {
   return (
@@ -35,14 +42,16 @@ export default function App() {
         {/* Private routes */}
         <Route path="/" element={<PrivateRoute />}>
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route index element={<HomeRedirect />} />
+            <Route element={<AdminRoute />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="all-dishes" element={<AllDishes />} />
+              <Route path="all-orders" element={<AllOrders />} />
+              <Route path="overall-performance" element={<OverallPerformance />} />
+            </Route>
             <Route path="menu" element={<Menu />} />
             <Route path="orders" element={<Orders />} />
             <Route path="tables" element={<Tables />} />
-            <Route path="all-dishes" element={<AllDishes />} />
-            <Route path="all-orders" element={<AllOrders />} />
-            <Route path="overall-performance" element={<OverallPerformance />} />
             <Route path="profile" element={<Profile />} />
             <Route path="/forget-password-new" element={<ForgotPasswordNew />} />
           </Route>

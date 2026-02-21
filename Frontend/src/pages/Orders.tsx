@@ -286,7 +286,7 @@ export default function Orders() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sortedOrders.map((order) => {
           const subtotal = order.items.reduce((sum, item) => sum + item.price, 0);
-          const tax = Math.max(order.totalAmount - subtotal, 0);
+          const total = subtotal;
 
           return (
             <Card key={order.id} className="bg-card border-border hover:shadow-md transition-shadow">
@@ -345,13 +345,9 @@ export default function Orders() {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="text-foreground">Rs. {subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Tax/Charges</span>
-                    <span className="text-foreground">Rs. {tax.toFixed(2)}</span>
-                  </div>
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>Rs. {order.totalAmount.toFixed(2)}</span>
+                    <span>Rs. {total.toFixed(2)}</span>
                   </div>
                 </div>
 

@@ -142,8 +142,7 @@ export default function Menu() {
     .filter(item => item.quantity > 0);
 
   const subtotal = currentOrderItems.reduce((acc, item) => acc + item.price, 0);
-  const tax = subtotal * 0.0525;
-  const total = subtotal + tax;
+  const total = subtotal;
 
   const handlePlaceOrder = () => {
     if (!selectedTableId || currentOrderItems.length === 0) return;
@@ -372,10 +371,6 @@ export default function Menu() {
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Items({currentOrderItems.reduce((acc, item) => acc + item.quantity, 0)})</span>
                   <span className="text-sm font-medium">Rs. {subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-3">
-                  <span className="text-sm text-muted-foreground">Tax(5.25%)</span>
-                  <span className="text-sm font-medium">Rs. {tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>

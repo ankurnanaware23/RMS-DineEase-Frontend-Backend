@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { signIn } from "@/lib/api";
 
+const parseJwt = (token: string) => {
+  try {
+    const payload = token.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = atob(base64);
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+};
+
 export default function SignIn() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +49,9 @@ export default function SignIn() {
         description: "You have successfully signed in.",
       });
 
-      navigate("/dashboard");
+      const payload = parseJwt(data.access);
+      const isAdmin = Boolean(payload?.is_superuser || payload?.is_staff);
+      navigate(isAdmin ? "/dashboard" : "/menu");
     } catch (error) {
       toast.error("Invalid email or password");
     } finally {
